@@ -1,0 +1,34 @@
+__pycache__/
+*.pyc
+
+.venv/
+
+data/
+outputs/
+
+*.pt
+*.pth
+*.pkl
+*.joblib
+
+# The packaged serving bundle IS committed — it's the portable demo artifact
+# the backend loads, so the app runs without the training data/checkpoints.
+!serving/
+!serving/**
+
+# Frontend build tooling
+node_modules/
+frontend/dist/
+
+# runtime logs
+backend/*.log
+*.log
+
+# The 936 (EEG+HbO+HbR) prototype bundle — documented future-work evidence, not
+# used by the live app. Regenerable via prototype_936_serving.py.
+serving_936/
+
+# Synthetic upload test fixtures — regenerable via generate_synthetic_test_csvs.py
+# (keeps ~5 MB of generated data out of git, per the data/ + outputs/ convention).
+# The generator and the folder README (test plan) ARE committed.
+test_data/synthetic/*.csv

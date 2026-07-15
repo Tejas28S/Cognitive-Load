@@ -1,0 +1,631 @@
+{
+  "generated_at": "2026-07-15T20:21:18",
+  "sources": {
+    "dann": {
+      "artifact": "dann_ablation.json",
+      "provenance": "dann_ablation.py \u00b7 26-fold LOSO, paired significance + subject-invariance probe"
+    },
+    "dann_lambda_sweep": {
+      "artifact": "dann_lambda_sweep.json",
+      "provenance": "dann_ablation.py --lambda-sweep \u00b7 controlled adversary on/off"
+    },
+    "protocol": {
+      "artifact": "protocol_benchmark.json",
+      "provenance": "protocol_benchmark.py \u00b7 same RF across protocol axes"
+    },
+    "hbr": {
+      "artifact": "hbr_ablation.json",
+      "provenance": "hbr_ablation.py \u00b7 HbO-only (468) vs HbO+HbR (936), 26-fold LOSO"
+    },
+    "hbr_served_split": {
+      "artifact": "compare_936_vs_live.json",
+      "provenance": "compare_936_vs_live.py \u00b7 both bundles through the real backend"
+    },
+    "classical": {
+      "artifact": "classical_sweep.json",
+      "provenance": "classical_sweep.py \u00b7 XGBoost / SVM vs Random Forest"
+    },
+    "significance": {
+      "artifact": "significance_tests.json",
+      "provenance": "part1_rigor.py \u00b7 locked-model paired tests"
+    }
+  },
+  "dann": {
+    "baseline": {
+      "hybrid": {
+        "f1_mean": 0.39240880448122684,
+        "f1_std": 0.12224856614432712,
+        "acc_mean": 0.4063817663817664,
+        "auc_mean": 0.5819681861348529,
+        "recall_mean": [
+          0.4925213675213676,
+          0.3888888888888889,
+          0.33814102564102566
+        ]
+      },
+      "ensemble": {
+        "f1_mean": 0.4520120494861376,
+        "f1_std": 0.0994551392016994,
+        "acc_mean": 0.46034188034188045,
+        "auc_mean": 0.6202877399772824,
+        "recall_mean": [
+          0.5325854700854701,
+          0.49999999999999994,
+          0.343482905982906
+        ]
+      }
+    },
+    "dann": {
+      "hybrid": {
+        "f1_mean": 0.3752811216103147,
+        "f1_std": 0.10811303272055542,
+        "acc_mean": 0.4067236467236467,
+        "auc_mean": 0.5756708191348714,
+        "recall_mean": [
+          0.4519230769230769,
+          0.42735042735042733,
+          0.3392094017094017
+        ]
+      },
+      "ensemble": {
+        "f1_mean": 0.45449660684007376,
+        "f1_std": 0.07916043366811652,
+        "acc_mean": 0.46826210826210823,
+        "auc_mean": 0.6321143604640336,
+        "recall_mean": [
+          0.5144230769230769,
+          0.5341880341880343,
+          0.34882478632478625
+        ]
+      }
+    },
+    "significance_dann_vs_baseline": {
+      "hybrid_dann_vs_base": {
+        "comparison": "Hybrid DANN vs baseline (macro F1)",
+        "mean_a": 0.3752811216103147,
+        "mean_b": 0.39240880448122684,
+        "mean_diff": -0.01712768287091213,
+        "t_stat": -0.49140950141540374,
+        "t_p": 0.6274235589220066,
+        "wilcoxon_stat": 144.0,
+        "wilcoxon_p": 0.6186406172812118,
+        "n": 26
+      },
+      "ensemble_dann_vs_base": {
+        "comparison": "Hybrid+RF DANN vs baseline (macro F1)",
+        "mean_a": 0.45449660684007376,
+        "mean_b": 0.4520120494861376,
+        "mean_diff": 0.0024845573539361864,
+        "t_stat": 0.15048289859540398,
+        "t_p": 0.8815912260016117,
+        "wilcoxon_stat": 168.0,
+        "wilcoxon_p": 0.8612560033798218,
+        "n": 26
+      }
+    },
+    "conclusion": {
+      "hybrid": "no significant difference",
+      "ensemble": "no significant difference"
+    },
+    "subject_invariance_probe": {
+      "baseline_probe_acc_mean": 0.09112218587732702,
+      "dann_probe_acc_mean": 0.09797412213672232,
+      "chance_mean": 0.05000000000000001,
+      "interpretation": "lower probe accuracy = more subject-invariant; DANN should push subject-id recovery toward chance.",
+      "per_fold": [
+        {
+          "subject": "1",
+          "baseline_probe_acc": 0.08552631578947369,
+          "dann_probe_acc": 0.09868421052631579,
+          "chance": 0.05
+        },
+        {
+          "subject": "10",
+          "baseline_probe_acc": 0.13157894736842105,
+          "dann_probe_acc": 0.1118421052631579,
+          "chance": 0.05
+        },
+        {
+          "subject": "11",
+          "baseline_probe_acc": 0.08666666666666667,
+          "dann_probe_acc": 0.07333333333333333,
+          "chance": 0.05
+        },
+        {
+          "subject": "12",
+          "baseline_probe_acc": 0.1118421052631579,
+          "dann_probe_acc": 0.10526315789473684,
+          "chance": 0.05
+        },
+        {
+          "subject": "13",
+          "baseline_probe_acc": 0.08552631578947369,
+          "dann_probe_acc": 0.05921052631578947,
+          "chance": 0.05
+        },
+        {
+          "subject": "14",
+          "baseline_probe_acc": 0.08552631578947369,
+          "dann_probe_acc": 0.17763157894736842,
+          "chance": 0.05
+        },
+        {
+          "subject": "15",
+          "baseline_probe_acc": 0.10596026490066225,
+          "dann_probe_acc": 0.08609271523178808,
+          "chance": 0.05
+        },
+        {
+          "subject": "16",
+          "baseline_probe_acc": 0.09210526315789473,
+          "dann_probe_acc": 0.1118421052631579,
+          "chance": 0.05
+        },
+        {
+          "subject": "17",
+          "baseline_probe_acc": 0.09868421052631579,
+          "dann_probe_acc": 0.05263157894736842,
+          "chance": 0.05
+        },
+        {
+          "subject": "18",
+          "baseline_probe_acc": 0.046052631578947366,
+          "dann_probe_acc": 0.07236842105263158,
+          "chance": 0.05
+        },
+        {
+          "subject": "19",
+          "baseline_probe_acc": 0.11258278145695365,
+          "dann_probe_acc": 0.12582781456953643,
+          "chance": 0.05
+        },
+        {
+          "subject": "2",
+          "baseline_probe_acc": 0.05921052631578947,
+          "dann_probe_acc": 0.09210526315789473,
+          "chance": 0.05
+        },
+        {
+          "subject": "20",
+          "baseline_probe_acc": 0.07236842105263158,
+          "dann_probe_acc": 0.125,
+          "chance": 0.05
+        },
+        {
+          "subject": "21",
+          "baseline_probe_acc": 0.0728476821192053,
+          "dann_probe_acc": 0.0728476821192053,
+          "chance": 0.05
+        },
+        {
+          "subject": "22",
+          "baseline_probe_acc": 0.1118421052631579,
+          "dann_probe_acc": 0.09210526315789473,
+          "chance": 0.05
+        },
+        {
+          "subject": "23",
+          "baseline_probe_acc": 0.08609271523178808,
+          "dann_probe_acc": 0.12582781456953643,
+          "chance": 0.05
+        },
+        {
+          "subject": "24",
+          "baseline_probe_acc": 0.0728476821192053,
+          "dann_probe_acc": 0.08609271523178808,
+          "chance": 0.05
+        },
+        {
+          "subject": "25",
+          "baseline_probe_acc": 0.08609271523178808,
+          "dann_probe_acc": 0.12582781456953643,
+          "chance": 0.05
+        },
+        {
+          "subject": "26",
+          "baseline_probe_acc": 0.08666666666666667,
+          "dann_probe_acc": 0.05333333333333334,
+          "chance": 0.05
+        },
+        {
+          "subject": "3",
+          "baseline_probe_acc": 0.09210526315789473,
+          "dann_probe_acc": 0.1118421052631579,
+          "chance": 0.05
+        },
+        {
+          "subject": "4",
+          "baseline_probe_acc": 0.14473684210526316,
+          "dann_probe_acc": 0.07236842105263158,
+          "chance": 0.05
+        },
+        {
+          "subject": "5",
+          "baseline_probe_acc": 0.0728476821192053,
+          "dann_probe_acc": 0.10596026490066225,
+          "chance": 0.05
+        },
+        {
+          "subject": "6",
+          "baseline_probe_acc": 0.10526315789473684,
+          "dann_probe_acc": 0.09210526315789473,
+          "chance": 0.05
+        },
+        {
+          "subject": "7",
+          "baseline_probe_acc": 0.07947019867549669,
+          "dann_probe_acc": 0.13245033112582782,
+          "chance": 0.05
+        },
+        {
+          "subject": "8",
+          "baseline_probe_acc": 0.07947019867549669,
+          "dann_probe_acc": 0.07947019867549669,
+          "chance": 0.05
+        },
+        {
+          "subject": "9",
+          "baseline_probe_acc": 0.10526315789473684,
+          "dann_probe_acc": 0.10526315789473684,
+          "chance": 0.05
+        }
+      ]
+    }
+  },
+  "dann_lambda_sweep": {
+    "0": {
+      "f1_mean": 0.4177064799885709,
+      "f1_std": 0.08198114238750201,
+      "auc_mean": 0.6141934575349608
+    },
+    "0.5": {
+      "f1_mean": 0.39329834035094713,
+      "f1_std": 0.11194315298044313,
+      "auc_mean": 0.592265562445301
+    },
+    "1": {
+      "f1_mean": 0.3752811216103147,
+      "f1_std": 0.10811303272055542,
+      "auc_mean": 0.5756708191348714
+    },
+    "2": {
+      "f1_mean": 0.3621996048908045,
+      "f1_std": 0.09579574094994876,
+      "auc_mean": 0.5948172122600227
+    }
+  },
+  "protocol": {
+    "three_class_no_normalization": {
+      "within_subject": {
+        "f1_mean": 0.39312755397678706,
+        "f1_std": 0.025989389591927467,
+        "acc_mean": 0.39600704638872575,
+        "acc_std": 0.015841755705383192,
+        "n_folds": 5
+      },
+      "leave_one_subject_out": {
+        "f1_mean": 0.4330579938117268,
+        "f1_std": 0.09269398420544163,
+        "acc_mean": 0.4502564102564103,
+        "acc_std": 0.09289448046977375,
+        "n_folds": 26
+      }
+    },
+    "three_class_per_subject_norm": {
+      "within_subject": {
+        "f1_mean": 0.4104189735592267,
+        "f1_std": 0.045068093757181515,
+        "acc_mean": 0.4159718144450969,
+        "acc_std": 0.03959759786479938,
+        "n_folds": 5
+      },
+      "leave_one_subject_out": {
+        "f1_mean": 0.41728054808625237,
+        "f1_std": 0.07202442594438599,
+        "acc_mean": 0.4268376068376068,
+        "acc_std": 0.0694187592210106,
+        "n_folds": 26
+      }
+    },
+    "binary_low_vs_high_per_subject_norm": {
+      "within_subject": {
+        "f1_mean": 0.6208876989969718,
+        "f1_std": 0.059707448177528,
+        "acc_mean": 0.6214285714285713,
+        "acc_std": 0.059950849104829354,
+        "n_folds": 5
+      },
+      "leave_one_subject_out": {
+        "f1_mean": 0.6177399249291367,
+        "f1_std": 0.09951732479922168,
+        "acc_mean": 0.6247329059829061,
+        "acc_std": 0.09823723758265271,
+        "n_folds": 26
+      }
+    },
+    "notes": {
+      "estimator": "RandomForest(400 trees, balanced)",
+      "features": "180 EEG + 468 HbO (same as locked model), per-fold train-only scaling",
+      "within_subject": "StratifiedKFold(5, shuffled) \u2014 same subject in train+test",
+      "loso": "LeaveOneGroupOut on subject_id \u2014 the honest cross-subject protocol",
+      "interpretation": "Without per-subject normalization, within-subject CV inflates vs LOSO (subject-baseline leakage). This project's per-subject normalization neutralizes that leak, so its within-subject and LOSO numbers are close and its LOSO figure is honest. The remaining distance to literature's 60-90% is largely the binary-vs-3-class task-difficulty axis."
+    }
+  },
+  "hbr": {
+    "hbo_468": {
+      "hybrid": {
+        "f1_mean": 0.3642086523228384,
+        "f1_std": 0.08939458604048203,
+        "acc_mean": 0.3981766381766382,
+        "auc_mean": 0.6010988678472339,
+        "recall_mean": [
+          0.5918803418803419,
+          0.32478632478632463,
+          0.28525641025641024
+        ]
+      },
+      "ensemble": {
+        "f1_mean": 0.4431310090601382,
+        "f1_std": 0.07970689774862706,
+        "acc_mean": 0.45179487179487177,
+        "auc_mean": 0.6333759287190659,
+        "recall_mean": [
+          0.5432692307692307,
+          0.4743589743589744,
+          0.33386752136752135
+        ]
+      }
+    },
+    "hbo_hbr_936": {
+      "hybrid": {
+        "f1_mean": 0.45082952964355893,
+        "f1_std": 0.09186742084400691,
+        "acc_mean": 0.47196581196581194,
+        "auc_mean": 0.6599805876766661,
+        "recall_mean": [
+          0.5737179487179487,
+          0.4914529914529914,
+          0.3450854700854701
+        ]
+      },
+      "ensemble": {
+        "f1_mean": 0.48891160600726546,
+        "f1_std": 0.10706492953784387,
+        "acc_mean": 0.5013105413105413,
+        "auc_mean": 0.6946050499972067,
+        "recall_mean": [
+          0.5982905982905983,
+          0.5427350427350427,
+          0.3563034188034188
+        ]
+      }
+    },
+    "significance_936_vs_468": {
+      "hybrid_936_vs_468": {
+        "comparison": "Hybrid HbO+HbR vs HbO (macro F1)",
+        "mean_a": 0.45082952964355893,
+        "mean_b": 0.3642086523228384,
+        "mean_diff": 0.08662087732072045,
+        "t_stat": 3.472588384353045,
+        "t_p": 0.0018910175289602242,
+        "wilcoxon_stat": 58.0,
+        "wilcoxon_p": 0.001971602439880371,
+        "n": 26
+      },
+      "ensemble_936_vs_468": {
+        "comparison": "Hybrid+RF HbO+HbR vs HbO (macro F1)",
+        "mean_a": 0.48891160600726546,
+        "mean_b": 0.4431310090601382,
+        "mean_diff": 0.04578059694712728,
+        "t_stat": 2.2242359261743694,
+        "t_p": 0.03539499676322645,
+        "wilcoxon_stat": 101.0,
+        "wilcoxon_p": 0.05935487151145935,
+        "n": 26
+      }
+    },
+    "conclusion": {
+      "hybrid": "HbR SIGNIFICANTLY HELPS",
+      "ensemble": "no significant difference (drop justified by parsimony)"
+    }
+  },
+  "hbr_served_split": {
+    "live_468": {
+      "serving_dir": "serving",
+      "n_fnirs": 468,
+      "n_windows": 150,
+      "macro_f1": 0.39087301587301587,
+      "accuracy": 0.4,
+      "per_class_recall": [
+        0.5416666666666666,
+        0.42592592592592593,
+        0.22916666666666666
+      ],
+      "ece": 0.12234838891029357,
+      "mean_confidence": 0.43526673050721476,
+      "mean_confidence_correct": 0.4567321835855643,
+      "latency_ms_mean": 90.0843866666158,
+      "latency_ms_p95": 100.05728499236282
+    },
+    "proto_936": {
+      "serving_dir": "serving_936",
+      "n_fnirs": 936,
+      "n_windows": 150,
+      "macro_f1": 0.4036259022910346,
+      "accuracy": 0.42,
+      "per_class_recall": [
+        0.4375,
+        0.5740740740740741,
+        0.22916666666666666
+      ],
+      "ece": 0.09176861323118216,
+      "mean_confidence": 0.3883309249281883,
+      "mean_confidence_correct": 0.39789349752759173,
+      "latency_ms_mean": 90.60357133334037,
+      "latency_ms_p95": 99.94113001012008
+    },
+    "delta_936_minus_468": {
+      "macro_f1": 0.0128,
+      "accuracy": 0.02,
+      "ece": -0.0306,
+      "mean_confidence": -0.0469,
+      "latency_ms_mean": 0.5192
+    }
+  },
+  "classical": {
+    "standalone_loso": {
+      "rf": {
+        "f1_mean": 0.43654537999503684,
+        "f1_std": 0.08982351271573864,
+        "acc_mean": 0.44672364672364673,
+        "auc_mean": 0.6186813934975699,
+        "recall_mean": [
+          0.44711538461538464,
+          0.5384615384615384,
+          0.34401709401709396
+        ]
+      },
+      "xgb": {
+        "f1_mean": 0.43793966732463985,
+        "f1_std": 0.09601448186424616,
+        "acc_mean": 0.4421082621082621,
+        "auc_mean": 0.6190802888106808,
+        "recall_mean": [
+          0.4813034188034188,
+          0.45299145299145305,
+          0.38995726495726496
+        ]
+      },
+      "svm": {
+        "f1_mean": 0.36490815294766205,
+        "f1_std": 0.07260624604154366,
+        "acc_mean": 0.41749287749287745,
+        "auc_mean": 0.6267096344710723,
+        "recall_mean": [
+          0.5267094017094017,
+          0.5982905982905982,
+          0.10363247863247864
+        ]
+      }
+    },
+    "rf_standalone_f1": 0.43654537999503684,
+    "significance_vs_rf": {
+      "xgb": {
+        "comparison": "xgb vs RF (macro F1)",
+        "mean_a": 0.43793966732463985,
+        "mean_b": 0.43654537999503684,
+        "mean_diff": 0.0013942873296030056,
+        "t_p": 0.926,
+        "wilcoxon_p": 0.989,
+        "n": 26
+      },
+      "svm": {
+        "comparison": "svm vs RF (macro F1)",
+        "mean_a": 0.36490815294766205,
+        "mean_b": 0.43654537999503684,
+        "mean_diff": -0.0716372270473748,
+        "t_p": 0.0,
+        "wilcoxon_p": 0.001,
+        "n": 26
+      }
+    },
+    "task1_clear_winners_over_rf": [],
+    "task1_numeric_over_rf": [
+      "xgb"
+    ],
+    "current_best_ensemble_f1": 0.4431,
+    "task2": {
+      "run": true,
+      "gate_passing": false,
+      "note": "XGB is numerically ahead of RF but NOT significantly (wilcoxon p=0.989); ensembles reported for completeness only, not gate-passing.",
+      "ensembles": {
+        "hybrid+rf": {
+          "f1_mean": 0.4431310090601382,
+          "f1_std": 0.07970689774862706,
+          "acc_mean": 0.45179487179487177,
+          "auc_mean": 0.6333759287190659,
+          "recall_mean": [
+            0.5432692307692307,
+            0.4743589743589744,
+            0.33386752136752135
+          ],
+          "min_recall": 0.33386752136752135
+        },
+        "hybrid+xgb": {
+          "f1_mean": 0.4440308159576205,
+          "f1_std": 0.09014456794622826,
+          "acc_mean": 0.45133903133903125,
+          "auc_mean": 0.6339834366795151,
+          "recall_mean": [
+            0.5438034188034189,
+            0.4358974358974359,
+            0.37553418803418803
+          ],
+          "min_recall": 0.37553418803418803
+        },
+        "hybrid+rf+xgb": {
+          "f1_mean": 0.4368158165629354,
+          "f1_std": 0.08780248116498415,
+          "acc_mean": 0.4423361823361824,
+          "auc_mean": 0.6346619369495186,
+          "recall_mean": [
+            0.5101495726495726,
+            0.44444444444444453,
+            0.37179487179487175
+          ],
+          "min_recall": 0.37179487179487175
+        }
+      }
+    },
+    "new_best": false,
+    "best_config_numeric": "hybrid+xgb",
+    "best_f1_numeric": 0.4440308159576205,
+    "verdict": "No classical model clearly (significantly) beats standalone RF. XGBoost ties RF (+0.0014 F1, wilcoxon p=0.989); SVM significantly worse (p=0.001). Even beyond the gate, hybrid+XGB 0.4440 vs hybrid+RF 0.4431 = +0.0009 (noise, ~1/100 of the 0.09 fold std). Hybrid+RF remains the locked model; nothing in serving changes."
+  },
+  "significance": {
+    "hybrid_vs_fnirs_f1": {
+      "comparison": "Hybrid vs fNIRS-only (Macro F1)",
+      "mean_a": 0.3642086523228384,
+      "mean_b": 0.41264563013862365,
+      "mean_diff": -0.04843697781578522,
+      "t_stat": -2.008101648364531,
+      "t_p": 0.05555327296572322,
+      "wilcoxon_stat": 96.0,
+      "wilcoxon_p": 0.04346644878387451,
+      "n": 26
+    },
+    "hybrid_vs_fnirs_auc": {
+      "comparison": "Hybrid vs fNIRS-only (AUC)",
+      "mean_a": 0.6010988678472339,
+      "mean_b": 0.6117186190715602,
+      "mean_diff": -0.010619751224326405,
+      "t_stat": -0.49088473699489044,
+      "t_p": 0.6277894460130782,
+      "wilcoxon_stat": 163.0,
+      "wilcoxon_p": 0.7508737107887603,
+      "n": 26
+    },
+    "normalized_vs_nonnormalized_f1": {
+      "comparison": "Normalized vs Non-normalized Hybrid (Macro F1)",
+      "mean_a": 0.3642086523228384,
+      "mean_b": 0.284075156533673,
+      "mean_diff": 0.08013349578916543,
+      "t_stat": 3.100842205866503,
+      "t_p": 0.004732844432124637,
+      "wilcoxon_stat": 65.0,
+      "wilcoxon_p": 0.0039003193378448486,
+      "n": 26
+    },
+    "normalized_vs_nonnormalized_auc": {
+      "comparison": "Normalized vs Non-normalized Hybrid (AUC)",
+      "mean_a": 0.6010988678472339,
+      "mean_b": 0.5522072789229652,
+      "mean_diff": 0.04889158892426864,
+      "t_stat": 1.9811191805023853,
+      "t_p": 0.05867901158388246,
+      "wilcoxon_stat": 119.0,
+      "wilcoxon_p": 0.15736517310142517,
+      "n": 26
+    }
+  }
+}

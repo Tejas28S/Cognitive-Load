@@ -1,0 +1,38 @@
+{
+  "model_type": "hybrid_cnn_lstm",
+  "n_eeg_features": 180,
+  "n_fnirs_features": 468,
+  "proj_dim": 128,
+  "enc_dim": 64,
+  "n_blocks": 2,
+  "encoder_dropout": 0.5,
+  "fusion_type": "attention",
+  "fc_units": [
+    64,
+    32
+  ],
+  "fc_dropout": 0.5,
+  "num_classes": 3,
+  "class_names": [
+    "Low",
+    "Medium",
+    "High"
+  ],
+  "frozen_checkpoint": "outputs\\phase3_per-subject_normalization_before_log.pt",
+  "served_model": "hybrid_rf_ensemble",
+  "ensemble": {
+    "type": "probability_average",
+    "members": [
+      "hybrid_cnn_lstm",
+      "random_forest"
+    ],
+    "weights": [
+      0.5,
+      0.5
+    ],
+    "rf_file": "rf_model.pkl",
+    "rf_estimators": 400,
+    "rf_seed": 42,
+    "rf_feature_order": "hstack([eeg_scaled, fnirs_scaled])"
+  }
+}

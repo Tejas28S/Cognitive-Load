@@ -1,0 +1,110 @@
+{
+  "standalone_loso": {
+    "rf": {
+      "f1_mean": 0.43654537999503684,
+      "f1_std": 0.08982351271573864,
+      "acc_mean": 0.44672364672364673,
+      "auc_mean": 0.6186813934975699,
+      "recall_mean": [
+        0.44711538461538464,
+        0.5384615384615384,
+        0.34401709401709396
+      ]
+    },
+    "xgb": {
+      "f1_mean": 0.43793966732463985,
+      "f1_std": 0.09601448186424616,
+      "acc_mean": 0.4421082621082621,
+      "auc_mean": 0.6190802888106808,
+      "recall_mean": [
+        0.4813034188034188,
+        0.45299145299145305,
+        0.38995726495726496
+      ]
+    },
+    "svm": {
+      "f1_mean": 0.36490815294766205,
+      "f1_std": 0.07260624604154366,
+      "acc_mean": 0.41749287749287745,
+      "auc_mean": 0.6267096344710723,
+      "recall_mean": [
+        0.5267094017094017,
+        0.5982905982905982,
+        0.10363247863247864
+      ]
+    }
+  },
+  "rf_standalone_f1": 0.43654537999503684,
+  "significance_vs_rf": {
+    "xgb": {
+      "comparison": "xgb vs RF (macro F1)",
+      "mean_a": 0.43793966732463985,
+      "mean_b": 0.43654537999503684,
+      "mean_diff": 0.0013942873296030056,
+      "t_p": 0.926,
+      "wilcoxon_p": 0.989,
+      "n": 26
+    },
+    "svm": {
+      "comparison": "svm vs RF (macro F1)",
+      "mean_a": 0.36490815294766205,
+      "mean_b": 0.43654537999503684,
+      "mean_diff": -0.0716372270473748,
+      "t_p": 0.0,
+      "wilcoxon_p": 0.001,
+      "n": 26
+    }
+  },
+  "task1_clear_winners_over_rf": [],
+  "task1_numeric_over_rf": [
+    "xgb"
+  ],
+  "current_best_ensemble_f1": 0.4431,
+  "task2": {
+    "run": true,
+    "gate_passing": false,
+    "note": "XGB is numerically ahead of RF but NOT significantly (wilcoxon p=0.989); ensembles reported for completeness only, not gate-passing.",
+    "ensembles": {
+      "hybrid+rf": {
+        "f1_mean": 0.4431310090601382,
+        "f1_std": 0.07970689774862706,
+        "acc_mean": 0.45179487179487177,
+        "auc_mean": 0.6333759287190659,
+        "recall_mean": [
+          0.5432692307692307,
+          0.4743589743589744,
+          0.33386752136752135
+        ],
+        "min_recall": 0.33386752136752135
+      },
+      "hybrid+xgb": {
+        "f1_mean": 0.4440308159576205,
+        "f1_std": 0.09014456794622826,
+        "acc_mean": 0.45133903133903125,
+        "auc_mean": 0.6339834366795151,
+        "recall_mean": [
+          0.5438034188034189,
+          0.4358974358974359,
+          0.37553418803418803
+        ],
+        "min_recall": 0.37553418803418803
+      },
+      "hybrid+rf+xgb": {
+        "f1_mean": 0.4368158165629354,
+        "f1_std": 0.08780248116498415,
+        "acc_mean": 0.4423361823361824,
+        "auc_mean": 0.6346619369495186,
+        "recall_mean": [
+          0.5101495726495726,
+          0.44444444444444453,
+          0.37179487179487175
+        ],
+        "min_recall": 0.37179487179487175
+      }
+    }
+  },
+  "new_best": false,
+  "best_config_numeric": "hybrid+xgb",
+  "best_f1_numeric": 0.4440308159576205,
+  "verdict": "No classical model clearly (significantly) beats standalone RF. XGBoost ties RF (+0.0014 F1, wilcoxon p=0.989); SVM significantly worse (p=0.001). Even beyond the gate, hybrid+XGB 0.4440 vs hybrid+RF 0.4431 = +0.0009 (noise, ~1/100 of the 0.09 fold std). Hybrid+RF remains the locked model; nothing in serving changes."
+}

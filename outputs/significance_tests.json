@@ -1,0 +1,46 @@
+{
+  "hybrid_vs_fnirs_f1": {
+    "comparison": "Hybrid vs fNIRS-only (Macro F1)",
+    "mean_a": 0.3642086523228384,
+    "mean_b": 0.41264563013862365,
+    "mean_diff": -0.04843697781578522,
+    "t_stat": -2.008101648364531,
+    "t_p": 0.05555327296572322,
+    "wilcoxon_stat": 96.0,
+    "wilcoxon_p": 0.04346644878387451,
+    "n": 26
+  },
+  "hybrid_vs_fnirs_auc": {
+    "comparison": "Hybrid vs fNIRS-only (AUC)",
+    "mean_a": 0.6010988678472339,
+    "mean_b": 0.6117186190715602,
+    "mean_diff": -0.010619751224326405,
+    "t_stat": -0.49088473699489044,
+    "t_p": 0.6277894460130782,
+    "wilcoxon_stat": 163.0,
+    "wilcoxon_p": 0.7508737107887603,
+    "n": 26
+  },
+  "normalized_vs_nonnormalized_f1": {
+    "comparison": "Normalized vs Non-normalized Hybrid (Macro F1)",
+    "mean_a": 0.3642086523228384,
+    "mean_b": 0.284075156533673,
+    "mean_diff": 0.08013349578916543,
+    "t_stat": 3.100842205866503,
+    "t_p": 0.004732844432124637,
+    "wilcoxon_stat": 65.0,
+    "wilcoxon_p": 0.0039003193378448486,
+    "n": 26
+  },
+  "normalized_vs_nonnormalized_auc": {
+    "comparison": "Normalized vs Non-normalized Hybrid (AUC)",
+    "mean_a": 0.6010988678472339,
+    "mean_b": 0.5522072789229652,
+    "mean_diff": 0.04889158892426864,
+    "t_stat": 1.9811191805023853,
+    "t_p": 0.05867901158388246,
+    "wilcoxon_stat": 119.0,
+    "wilcoxon_p": 0.15736517310142517,
+    "n": 26
+  }
+}
