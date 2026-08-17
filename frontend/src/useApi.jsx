@@ -28,7 +28,21 @@ export function useApi(fn, deps = []) {
 }
 
 export function Loading() {
-  return <div className="loading">Loading…</div>;
+  // Shimmer skeleton - a calmer, more premium load state than a text spinner.
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <span className="skeleton" style={{ display: "block", width: 120, height: 12, borderRadius: 6, marginBottom: 12 }} />
+      <span className="skeleton" style={{ display: "block", width: "52%", height: 34, borderRadius: 8, marginBottom: 22 }} />
+      <div className="grid grid-2">
+        {[0, 1].map((i) => (
+          <div className="card" key={i}>
+            <span className="skeleton" style={{ display: "block", width: "40%", height: 20, borderRadius: 6, marginBottom: 14 }} />
+            <span className="skeleton" style={{ display: "block", width: "100%", height: 200, borderRadius: 10 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function ErrorBox({ error }) {

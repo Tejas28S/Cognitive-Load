@@ -1,5 +1,5 @@
 /* ============================================================================
-   Cognitive Load — "Laboratory Signal Record" design system
+   Cognitive Load - "Laboratory Signal Record" design system
    Spectral (display serif) · Inter (UI/body) · IBM Plex Mono (data/labels)
    The identity is the fusion of two brain signals: EEG (electrical, spiky) and
    fNIRS (hemodynamic, smooth). Indigo = EEG pole, cyan = fNIRS pole.
@@ -30,10 +30,11 @@
   --on-deep-2: #9fb0c6;
   --on-deep-line: rgba(255, 255, 255, 0.1);
 
-  /* Accents — the two signal poles */
+  /* Accents - the two signal poles */
   --eeg: #6366f1; /* electrical / indigo */
   --fnirs: #06b6d4; /* hemodynamic / cyan */
   --accent: #4f46e5;
+  --accent-rgb: 79, 70, 229;
   --accent-ink: #3730a3;
   --accent-soft: #eef1fe;
 
@@ -43,7 +44,7 @@
   --muted: var(--ink-3);
   --ink-muted: var(--ink-3);
 
-  /* Cognitive-load class scale (mirrors constants.js — colorblind-safe) */
+  /* Cognitive-load class scale (mirrors constants.js - colorblind-safe) */
   --low: #0d9488;
   --medium: #d97706;
   --high: #dc2626;
@@ -143,7 +144,7 @@ strong {
   font-weight: 650;
 }
 
-/* Eyebrow / kicker — mono, tracked, the "instrument label" voice */
+/* Eyebrow / kicker - mono, tracked, the "instrument label" voice */
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -599,7 +600,7 @@ table.data tr.is-best td {
   padding-left: 14px;
 }
 
-/* ── Figure (plate) — chart/diagram with caption + source attribution ───── */
+/* ── Figure (plate) - chart/diagram with caption + source attribution ───── */
 .figure {
   border: 1px solid var(--border);
   border-radius: var(--r);
@@ -893,7 +894,7 @@ table.data tr.is-best td {
   margin: 0;
 }
 
-/* Signal divider — the fused EEG→fNIRS trace as a rule between sections */
+/* Signal divider - the fused EEG→fNIRS trace as a rule between sections */
 .signal-rule {
   display: block;
   width: 100%;
@@ -1013,4 +1014,725 @@ table.data tr.is-best td {
    and section rail keep working. */
 body {
   overflow-x: clip;
+}
+
+/* ============================================================================
+   DARK THEME - overrides the semantic tokens only. Every surface/ink/border in
+   the app already keys off these, so the whole UI (and all charts, which read
+   the CSS vars) follows. Toggled via <html data-theme="dark"> by lib/theme.jsx.
+   ========================================================================== */
+:root[data-theme="dark"] {
+  --paper: #0a0e16;
+  --paper-edge: #0e131d;
+  --surface: #141b28;
+  --surface-2: #101724;
+  --border: #242e3e;
+  --border-strong: #33404f;
+  --ink: #e9edf4;
+  --ink-2: #aeb9c9;
+  --ink-3: #7a8698;
+
+  /* Instrument band stays deep but lifts slightly off the darker page */
+  --ink-deep: #060a12;
+  --ink-deep-2: #0c1524;
+  --on-deep: #eef2f8;
+  --on-deep-2: #9fb0c6;
+  --on-deep-line: rgba(255, 255, 255, 0.08);
+
+  /* Accents lift for contrast on dark surfaces */
+  --eeg: #818cf8;
+  --fnirs: #22d3ee;
+  --accent: #818cf8;
+  --accent-rgb: 129, 140, 248;
+  --accent-ink: #a5b4fc;
+  --accent-soft: rgba(129, 140, 248, 0.14);
+
+  /* Class scale - nudged lighter so text/contrast holds on dark */
+  --low: #2dd4bf;
+  --medium: #f59e0b;
+  --high: #f87171;
+
+  --ok: #2dd4bf;
+  --warn: #fbbf24;
+  --stop: #f87171;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 22px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* Dark: component-specific colors that weren't already tokenized */
+:root[data-theme="dark"] .nav {
+  background: rgba(10, 14, 22, 0.78);
+}
+:root[data-theme="dark"] .note {
+  background: rgba(217, 119, 6, 0.1);
+  border-color: rgba(217, 119, 6, 0.32);
+  color: #fcd9a3;
+}
+:root[data-theme="dark"] .note.info {
+  background: var(--accent-soft);
+  border-color: rgba(129, 140, 248, 0.34);
+  color: var(--accent-ink);
+}
+:root[data-theme="dark"] .note.plain {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--ink-2);
+}
+/* The red "upload rejected" card uses inline hex - soften it for dark */
+:root[data-theme="dark"] .card[style*="fca5a5"] {
+  border-color: rgba(248, 113, 113, 0.45) !important;
+}
+
+/* Smooth the swap so it doesn't flash (but respect reduced-motion) */
+body,
+.nav,
+.card,
+.stat,
+.figure,
+.verdict,
+select,
+.pill {
+  transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ── Nav tools: theme toggle + ⌘K hint ──────────────────────────────────── */
+.nav-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 14px;
+  flex: none;
+}
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+}
+.theme-toggle:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.cmdk-hint-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+}
+.cmdk-hint-btn:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+.cmdk-hint-ic {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.cmdk-hint-btn kbd {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+/* ── Command palette ─────────────────────────────────────────────────────── */
+.cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(6, 10, 18, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+  animation: cmdk-fade 0.14s var(--ease);
+}
+@keyframes cmdk-fade {
+  from {
+    opacity: 0;
+  }
+}
+.cmdk {
+  width: min(560px, 92vw);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: cmdk-pop 0.16s var(--ease);
+}
+@keyframes cmdk-pop {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+.cmdk-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  padding: 16px 18px;
+  outline: none;
+}
+.cmdk-input::placeholder {
+  color: var(--ink-3);
+}
+.cmdk-list {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 6px;
+}
+.cmdk-empty {
+  padding: 22px;
+  text-align: center;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.cmdk-group {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  padding: 10px 12px 4px;
+}
+.cmdk-item {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.cmdk-item.is-active {
+  background: var(--accent-soft);
+}
+.cmdk-label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.cmdk-item.is-active .cmdk-label {
+  color: var(--accent-ink);
+}
+.cmdk-hint {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmdk-foot {
+  display: flex;
+  gap: 16px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+.cmdk-foot kbd {
+  font-family: var(--font-mono);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-right: 3px;
+  font-size: 0.7rem;
+}
+
+/* ── Export menu ─────────────────────────────────────────────────────────── */
+.export-menu {
+  position: relative;
+  display: inline-block;
+}
+.export-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  font-size: 0.83rem;
+}
+.export-caret {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+.export-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 190px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+  padding: 5px;
+  animation: cmdk-pop 0.14s var(--ease);
+}
+.export-pop button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-xs);
+  padding: 8px 11px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+.export-pop button:hover {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.export-ic {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+}
+.export-pop button:hover .export-ic {
+  color: var(--accent);
+}
+
+/* Figure caption: source line + a small PNG export control */
+.figure-cap .cap-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.figure-cap .export-trigger {
+  padding: 4px 9px;
+  font-size: 0.74rem;
+}
+
+/* Right-aligned toolbar used at the top of exportable cards/figures */
+.card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* ── Toasts ──────────────────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 92vw;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 240px;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  color: var(--ink);
+  animation: toast-in 0.22s var(--ease);
+}
+@keyframes toast-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+}
+.toast--success {
+  border-left-color: var(--ok);
+}
+.toast--error {
+  border-left-color: var(--stop);
+}
+.toast--info {
+  border-left-color: var(--accent);
+}
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.toast--success .toast-dot {
+  background: var(--ok);
+}
+.toast--error .toast-dot {
+  background: var(--stop);
+}
+.toast--info .toast-dot {
+  background: var(--accent);
+}
+.toast-msg {
+  flex: 1;
+  line-height: 1.4;
+}
+.toast-x {
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+.toast-x:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .cmdk-hint-btn kbd {
+    display: none;
+  }
+  .cmdk-hint-btn {
+    padding: 0 8px;
+  }
+  .nav-tools {
+    margin-left: 8px;
+  }
+}
+
+/* ── Forest plot (effect size + significance) ───────────────────────────── */
+.forest {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.forest-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  padding: 0 2px 2px;
+  border-bottom: 1px dashed var(--border-strong);
+}
+.forest-row {
+  display: grid;
+  grid-template-columns: 210px 1fr 250px;
+  align-items: center;
+  gap: 14px;
+}
+.forest-label {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+.forest-row.is-sig .forest-label {
+  color: var(--ink);
+  font-weight: 600;
+}
+.forest-track {
+  position: relative;
+  height: 26px;
+}
+.forest-zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-strong);
+}
+.forest-marker {
+  position: absolute;
+  top: 50%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--surface);
+  border: 2px solid var(--ink-3);
+}
+.forest-row.is-sig .forest-marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15);
+}
+.forest-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  flex-wrap: wrap;
+}
+.forest-diff {
+  font-weight: 600;
+  color: var(--ink-2);
+  min-width: 46px;
+}
+.forest-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+.forest-badge.sig {
+  color: var(--ok);
+  background: rgba(15, 118, 110, 0.08);
+}
+.forest-badge.ns {
+  color: var(--ink-3);
+  background: var(--surface-2);
+}
+@media (max-width: 760px) {
+  .forest-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* ── Dumbbell (fixed-split vs LOSO gap) ─────────────────────────────────── */
+.dumbbell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.dumbbell-row {
+  display: grid;
+  grid-template-columns: 96px 1fr 72px;
+  align-items: center;
+  gap: 14px;
+}
+.dumbbell-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.dumbbell-track {
+  position: relative;
+  height: 20px;
+}
+.dumbbell-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--surface-2);
+  border-radius: 2px;
+}
+.dumbbell-connect {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, var(--medium), var(--eeg));
+  border-radius: 3px;
+  opacity: 0.55;
+}
+.dumbbell-dot {
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.dumbbell-dot.fixed {
+  background: var(--medium);
+}
+.dumbbell-dot.loso {
+  background: var(--eeg);
+}
+.dumbbell-dot.inline {
+  position: static;
+  display: inline-block;
+  transform: translateY(2px);
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border: none;
+  box-shadow: none;
+}
+.dumbbell-vals {
+  text-align: right;
+  font-size: 0.8rem;
+}
+.dumbbell-gap {
+  color: var(--high);
+  font-weight: 600;
+}
+.dumbbell-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Animated hero backdrop ─────────────────────────────────────────────── */
+.page-hero {
+  position: relative;
+}
+.animated-band {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.page-hero .hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Scroll progress bar (under the nav) ────────────────────────────────── */
+.scroll-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: transparent;
+  overflow: hidden;
+}
+.scroll-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--eeg), var(--fnirs));
+  transition: width 0.08s linear;
+}
+
+/* ── Route transition ───────────────────────────────────────────────────── */
+.route-view {
+  animation: route-in 0.4s var(--ease);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────────────────── */
+.skeleton {
+  position: relative;
+  display: inline-block;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--accent-rgb), 0.1),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ── Bold micro-interactions ────────────────────────────────────────────── */
+.card,
+.stat,
+.figure {
+  transition: transform 0.28s var(--ease), box-shadow 0.28s var(--ease),
+    border-color 0.2s var(--ease);
+}
+.grid .card:hover,
+.figure:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.dumbbell-dot,
+.forest-marker {
+  transition: transform 0.2s var(--ease);
+}
+.dumbbell-row:hover .dumbbell-dot,
+.forest-row:hover .forest-marker {
+  transform: translate(-50%, -50%) scale(1.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-view {
+    animation: none;
+  }
+  .skeleton::after {
+    animation: none;
+  }
+  .grid .card:hover,
+  .figure:hover,
+  .stat:hover {
+    transform: none;
+  }
 }

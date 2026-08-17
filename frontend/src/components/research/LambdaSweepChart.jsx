@@ -8,16 +8,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { usePrefersReducedMotion } from "../../lib/chartTheme";
 
-const AXIS = "#8a94a1";
-const GRID = "#eef0f3";
-const INK = "#4f46e5";
+const AXIS = "var(--ink-3)";
+const GRID = "var(--border)";
+const INK = "var(--accent)";
 
 // Single-series line: adversarial strength (lambda_max) vs Hybrid macro F1.
 // This is the controlled on/off comparison (one code path). It falls
-// monotonically as lambda rises — the adversary injects noise rather than
+// monotonically as lambda rises - the adversary injects noise rather than
 // removing a harmful confound. One series → no legend; endpoints direct-labeled.
 export default function LambdaSweepChart({ sweep, height = 280 }) {
+  const reduced = usePrefersReducedMotion();
   if (!sweep) return null;
   const data = Object.keys(sweep)
     .map((k) => ({ lambda: parseFloat(k), f1: sweep[k].f1_mean }))
@@ -39,7 +41,7 @@ export default function LambdaSweepChart({ sweep, height = 280 }) {
             ticks={[0, 0.5, 1, 2]}
             tick={{ fill: AXIS, fontSize: 11 }}
             tickLine={false}
-            axisLine={{ stroke: "#e4e7eb" }}
+            axisLine={{ stroke: "var(--border)" }}
             label={{
               value: "adversary strength  λ_max  →",
               position: "insideBottom",
@@ -64,12 +66,13 @@ export default function LambdaSweepChart({ sweep, height = 280 }) {
             strokeWidth={2.5}
             dot={{ r: 4, fill: INK, strokeWidth: 0 }}
             activeDot={{ r: 6 }}
-            isAnimationActive={false}
+            isAnimationActive={!reduced}
+            animationDuration={800}
           />
           <ReferenceDot x={first.lambda} y={first.f1} r={0}
-            label={{ value: `λ=0 · ${first.f1.toFixed(3)} (off)`, position: "top", fill: "#0f766e", fontSize: 11, fontWeight: 600 }} />
+            label={{ value: `λ=0 · ${first.f1.toFixed(3)} (off)`, position: "top", fill: "var(--ok)", fontSize: 11, fontWeight: 600 }} />
           <ReferenceDot x={last.lambda} y={last.f1} r={0}
-            label={{ value: last.f1.toFixed(3), position: "right", fill: "#b91c1c", fontSize: 11, fontWeight: 600 }} />
+            label={{ value: last.f1.toFixed(3), position: "right", fill: "var(--stop)", fontSize: 11, fontWeight: 600 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

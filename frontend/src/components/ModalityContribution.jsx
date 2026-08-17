@@ -2,7 +2,7 @@ import { MODALITY_COLORS } from "../constants";
 
 // Two-segment bar: the model's learned gate weight on each modality's
 // representation. This is "how much the model trusts each stream," NOT "which
-// modality is more accurate" — a distinct thing (see the label copy below).
+// modality is more accurate" - a distinct thing (see the label copy below).
 export default function ModalityContribution({ eegShare, fnirsShare, compact }) {
   const eeg = eegShare ?? 0.5;
   const fnirs = fnirsShare ?? 0.5;
@@ -52,7 +52,7 @@ export default function ModalityContribution({ eegShare, fnirsShare, compact }) 
       </div>
       {!compact && (
         <div className="stat-sub" style={{ marginTop: 8 }}>
-          The model's learned trust in each modality's representation — not a
+          The model's learned trust in each modality's representation - not a
           claim about which sensor is more accurate.
         </div>
       )}

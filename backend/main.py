@@ -8,6 +8,7 @@ artifact under serving/ — nothing here is hardcoded.
 Run:
     uvicorn main:app --reload --port 8000
 (from inside the backend/ directory)
+# Triggering reload
 """
 
 import io
@@ -49,9 +50,24 @@ app.add_middleware(
 )
 
 # Load the model + data once at startup (not per-request).
-model_service = ModelService()
-data_service = DataService()
-upload_service = UploadService()
+import os
+model_services = {
+    "binary": ModelService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving")),
+    "3class": ModelService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving_3class"))
+}
+data_services = {
+    "binary": DataService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving")),
+    "3class": DataService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving_3class"))
+}
+upload_services = {
+    "binary": UploadService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving")),
+    "3class": UploadService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving_3class"))
+}
+
+def get_services(version: str):
+    if version not in model_services:
+        raise HTTPException(status_code=400, detail="Invalid version. Use 'binary' or '3class'")
+    return model_services[version], data_services[version], upload_services[version]
 
 
 # ── Health ──────────────────────────────────────────────────────────────────
@@ -64,13 +80,14 @@ def health():
 # ── Model metrics / confusion matrices ──────────────────────────────────────
 
 @app.get("/api/model/metrics")
-def model_metrics():
-    """Final fixed-split + LOSO metrics, ensembling, and significance tests."""
+def model_metrics(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     return data_service.metrics()
 
 
 @app.get("/api/model/confusion-matrix", response_model=ConfusionMatrix)
-def confusion_matrix(model: str = Query("hybrid", pattern="^(hybrid|eeg|fnirs)$")):
+def confusion_matrix(model: str = Query("hybrid", pattern="^(hybrid|eeg|fnirs)$"), version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     cm = data_service.confusion_matrix(model)
     if cm is None:
         raise HTTPException(status_code=404, detail=f"No confusion matrix for '{model}'")
@@ -80,24 +97,45 @@ def confusion_matrix(model: str = Query("hybrid", pattern="^(hybrid|eeg|fnirs)$"
 # ── Explainability ──────────────────────────────────────────────────────────
 
 @app.get("/api/explainability/shap")
-def explain_shap():
+def explain_shap(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     return data_service.shap()
 
 
 @app.get("/api/explainability/attention")
-def explain_attention():
+def explain_attention(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     return data_service.attention()
+
+
+# ── Model diagnostics / config ──────────────────────────────────────────────
+
+@app.get("/api/model/diagnostics")
+def model_diagnostics(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
+    diag = data_service.diagnostics()
+    if not diag:
+        raise HTTPException(
+            status_code=404,
+            detail="No diagnostics.json in the serving bundle. Run export_diagnostics.py.",
+        )
+    return diag
+
+
+@app.get("/api/model/config")
+def model_config(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
+    cfg = data_service.model_config()
+    if not cfg:
+        raise HTTPException(status_code=404, detail="No model_config.json in the serving bundle.")
+    return cfg
 
 
 # ── Research artifacts (narrative page) ─────────────────────────────────────
 
 @app.get("/api/research/summary")
-def research_summary():
-    """Consolidated results behind the /research narrative: DANN ablation +
-    lambda sweep, protocol taxonomy, HbR ablation (+ served-split), classical
-    sweep, and locked-model significance. Every block traces to an artifact
-    under outputs/, copied into serving/frontend_data/research.json by
-    export_research_data.py."""
+def research_summary(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     research = data_service.research()
     if not research:
         raise HTTPException(
@@ -110,12 +148,14 @@ def research_summary():
 # ── Demo sessions ───────────────────────────────────────────────────────────
 
 @app.get("/api/demo/subjects")
-def demo_subjects():
+def demo_subjects(version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     return data_service.list_subjects()
 
 
 @app.get("/api/demo/session/{subject_id}/{trial_id}")
-def demo_session(subject_id: int, trial_id: int = 0):
+def demo_session(subject_id: int, trial_id: int = 0, version: str = Query("binary")):
+    _, data_service, _ = get_services(version)
     session = data_service.get_session(subject_id, trial_id)
     if not session:
         raise HTTPException(status_code=404, detail=f"No demo session for subject {subject_id}")
@@ -124,7 +164,7 @@ def demo_session(subject_id: int, trial_id: int = 0):
 
 # ── Prediction ──────────────────────────────────────────────────────────────
 
-def _resolve_features(req: PredictRequest):
+def _resolve_features(req: PredictRequest, data_service):
     """Return (features, true_label, true_label_name, window_index)."""
     if req.features is not None:
         return req.features, None, None, req.window_index
@@ -143,8 +183,9 @@ def _resolve_features(req: PredictRequest):
 
 
 @app.post("/api/predict", response_model=PredictResponse)
-def predict(req: PredictRequest):
-    features, true_label, true_label_name, window_index = _resolve_features(req)
+def predict(req: PredictRequest, version: str = Query("binary")):
+    model_service, data_service, _ = get_services(version)
+    features, true_label, true_label_name, window_index = _resolve_features(req, data_service)
     out = model_service.predict_single(features)
     out["true_label"] = true_label
     out["true_label_name"] = true_label_name
@@ -153,7 +194,8 @@ def predict(req: PredictRequest):
 
 
 @app.post("/api/predict/session")
-def predict_session(req: SessionRequest):
+def predict_session(req: SessionRequest, version: str = Query("binary")):
+    model_service, data_service, _ = get_services(version)
     session = data_service.get_session(req.subject_id, req.trial_id)
     if not session:
         raise HTTPException(status_code=404, detail=f"No demo session for subject {req.subject_id}")
@@ -175,21 +217,17 @@ def predict_session(req: SessionRequest):
 
 # ── CSV upload (batch prediction on already-extracted TU Berlin features) ────
 
-SHORT = upload_service.class_names_short  # ["Low", "Medium", "High"]
-
-
 @app.get("/api/predict/upload/template")
-def upload_template():
-    """A small RAW-feature example CSV showing the exact expected upload format."""
-    path = f"{SERVING_DIR}/upload_template.csv"
+def upload_template(version: str = Query("binary")):
+    _, _, upload_service = get_services(version)
+    path = f"{upload_service.serving_dir}/upload_template.csv"
     return FileResponse(path, media_type="text/csv", filename="upload_template.csv")
 
 
 @app.post("/api/predict/upload")
-async def predict_upload(file: UploadFile = File(...)):
-    """Validate + preprocess a CSV of already-extracted features and return
-    ensemble predictions for every valid row, plus a summary. Rejects on any
-    missing required feature column — never silently processes mismatched data."""
+async def predict_upload(file: UploadFile = File(...), version: str = Query("binary")):
+    model_service, _, upload_service = get_services(version)
+    SHORT = upload_service.class_names_short
     raw = await file.read()
     try:
         df = pd.read_csv(io.BytesIO(raw))
@@ -257,3 +295,67 @@ async def predict_upload(file: UploadFile = File(...)):
         },
         "predictions": rows,
     }
+
+
+@app.post("/api/predict/upload_mat")
+async def predict_upload_mat(
+    eeg_file: UploadFile = File(...),
+    nirs_file: UploadFile = File(...),
+    version: str = Query("binary")
+):
+    from mat_extractor import process_raw_mats
+    model_service, _, upload_service = get_services(version)
+    SHORT = upload_service.class_names_short
+    
+    eeg_bytes = await eeg_file.read()
+    nirs_bytes = await nirs_file.read()
+    
+    try:
+        df = process_raw_mats(eeg_bytes, nirs_bytes)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Failed to extract features from .mat files: {exc}")
+
+    if len(df) == 0:
+        raise HTTPException(status_code=422, detail="No windows could be extracted. Files might be too short.")
+
+    ok, validation = upload_service.validate_columns(df.columns)
+    if not ok:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Extracted features do not match expected schema.",
+                **validation,
+            },
+        )
+
+    features, subjects, labels, norm_mode = upload_service.preprocess(df)
+    results = model_service.predict_batch(features.tolist())
+
+    rows, dist = [], {name: 0 for name in SHORT}
+    for i, r in enumerate(results):
+        dist[r["predicted_label"]] += 1
+        rows.append({
+            "row_index": i,
+            "subject_id": str(subjects[i]) if norm_mode == "per_subject" else None,
+            "predicted_label": r["predicted_label"],
+            "predicted_index": r["predicted_index"],
+            "probabilities": r["probabilities"],
+            "attention_weights": r["attention_weights"],
+            "true_label": None,
+            "true_label_name": None,
+        })
+
+    return {
+        "served_model": "hybrid_rf_ensemble",
+        "normalization": norm_mode,
+        "normalization_note": "Extracted directly from .mat files. Per-subject normalization applied.",
+        "summary": {
+            "rows_processed": len(rows),
+            "rows_rejected": 0,
+            "class_distribution": dist,
+            "accuracy_vs_uploaded_labels": None,
+            "unexpected_columns": validation["unexpected_columns"],
+        },
+        "predictions": rows,
+    }
+

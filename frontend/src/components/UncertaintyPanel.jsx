@@ -1,8 +1,8 @@
 import { fmtPct } from "../constants";
 
 // Trustworthiness surface for a single prediction. The served Hybrid+RF
-// ensemble naturally exposes confidence, entropy, and — because it has two
-// members — how much the Hybrid net and the Random Forest DISAGREE. On an
+// ensemble naturally exposes confidence, entropy, and - because it has two
+// members - how much the Hybrid net and the Random Forest DISAGREE. On an
 // honest 3-class LOSO task (~0.44 macro F1) an over-confident single label
 // would be misleading; showing uncertainty (and abstaining when the model is
 // not sure) is the deployment-grade, trustworthy behavior.
@@ -45,7 +45,7 @@ export default function UncertaintyPanel({ uncertainty }) {
         >
           <span style={{ fontWeight: 700, color: "#dc2626" }}>Low confidence</span>
           <span className="muted">
-            below the {fmtPct(confThr)} threshold — treat this as “unsure,” not a
+            below the {fmtPct(confThr)} threshold - treat this as “unsure,” not a
             firm call.
           </span>
         </div>

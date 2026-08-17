@@ -3,7 +3,7 @@ import { useId } from "react";
 // The signature element: a single trace that begins as jagged EEG spikes
 // (electrical, left) and relaxes into a smooth fNIRS hemodynamic curve
 // (hemodynamic, right). The indigo→cyan gradient IS the EEG+fNIRS fusion the
-// whole project is about — not decoration.
+// whole project is about - not decoration.
 
 const EEG_SPIKES = [
   [0, 50], [12, 44], [20, 59], [30, 28], [40, 66], [50, 39], [62, 56],
@@ -75,7 +75,7 @@ export default function SignalTrace({
   );
 }
 
-// Compact mark for the nav brand — same motif, tighter.
+// Compact mark for the nav brand - same motif, tighter.
 export function BrandMark() {
   const id = useId().replace(/:/g, "");
   return (

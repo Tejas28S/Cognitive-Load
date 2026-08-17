@@ -11,16 +11,18 @@ import {
   YAxis,
 } from "recharts";
 import { COMPARE_COLORS, REFERENCE_GRAY } from "../../constants";
+import { usePrefersReducedMotion } from "../../lib/chartTheme";
 
-const AXIS = "#8a94a1";
-const GRID = "#eef0f3";
+const AXIS = "var(--ink-3)";
+const GRID = "var(--border)";
 
 // Can a fresh classifier still recover subject identity from the learned
 // embedding? Lower = more subject-invariant. The diagnostic that proves the
 // mechanism: the BASELINE is already near chance (~0.09 vs 0.05), so there is
-// almost no decodable subject identity for the adversary to remove — which is
+// almost no decodable subject identity for the adversary to remove - which is
 // why DANN can't help here. Two bars (baseline, DANN); chance = dashed line.
 export default function SubjectProbeBar({ probe, height = 250 }) {
+  const reduced = usePrefersReducedMotion();
   if (!probe) return null;
   const chance = probe.chance_mean ?? 0.05;
   const data = [
@@ -35,9 +37,9 @@ export default function SubjectProbeBar({ probe, height = 250 }) {
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis
             dataKey="who"
-            tick={{ fill: "#55606d", fontSize: 12.5, fontWeight: 500 }}
+            tick={{ fill: "var(--ink-2)", fontSize: 12.5, fontWeight: 500 }}
             tickLine={false}
-            axisLine={{ stroke: "#e4e7eb" }}
+            axisLine={{ stroke: "var(--border)" }}
           />
           <YAxis
             domain={[0, 0.14]}
@@ -47,7 +49,7 @@ export default function SubjectProbeBar({ probe, height = 250 }) {
             width={40}
             tickFormatter={(v) => v.toFixed(2)}
           />
-          <Tooltip cursor={{ fill: "rgba(79,70,229,0.05)" }} content={<Tip chance={chance} />} />
+          <Tooltip cursor={{ fill: "rgba(var(--accent-rgb), 0.06)" }} content={<Tip chance={chance} />} />
           <ReferenceLine
             y={chance}
             stroke={REFERENCE_GRAY}
@@ -55,11 +57,11 @@ export default function SubjectProbeBar({ probe, height = 250 }) {
             label={{
               value: `chance ${chance.toFixed(2)}`,
               position: "right",
-              fill: "#6b7280",
+              fill: "var(--ink-3)",
               fontSize: 11,
             }}
           />
-          <Bar dataKey="acc" radius={[4, 4, 0, 0]} maxBarSize={90} isAnimationActive={false}>
+          <Bar dataKey="acc" radius={[4, 4, 0, 0]} maxBarSize={90} isAnimationActive={!reduced} animationDuration={700}>
             {data.map((d) => (
               <Cell key={d.who} fill={d.color} />
             ))}
@@ -67,7 +69,7 @@ export default function SubjectProbeBar({ probe, height = 250 }) {
               dataKey="acc"
               position="top"
               formatter={(v) => Number(v).toFixed(3)}
-              style={{ fill: "#47525f", fontSize: 11.5, fontWeight: 600 }}
+              style={{ fill: "var(--ink-2)", fontSize: 11.5, fontWeight: 600 }}
             />
           </Bar>
         </BarChart>

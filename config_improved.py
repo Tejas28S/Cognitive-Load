@@ -27,7 +27,7 @@ def _detect_cols(csv_path, prefix):
     return sorted([c for c in df.columns if c.startswith(prefix)], key=_natural_key)
 
 
-_CSV = os.environ.get("COGLOAD_CSV", "data/tuberlin_sliding.csv")
+_CSV = os.environ.get("COGLOAD_CSV", "data/tuberlin_sliding_augmented.csv")
 _eeg_cols = _detect_cols(_CSV, "eeg_")
 _hbo_cols = _detect_cols(_CSV, "hbo_")
 _hbr_cols = _detect_cols(_CSV, "hbr_")
@@ -51,10 +51,16 @@ class Config:
 
     LABEL_COLUMN = "Cognitive_Load"
     SUBJECT_COLUMN = "subject_id"
-    SPLIT_GROUP_COLUMNS = ["subject_id", "trial_id"]
+    SPLIT_GROUP_COLUMNS = ["subject_id"]
 
-    CLASS_NAMES = ["Low (0-back)", "Medium (2-back)", "High (3-back)"]
-    NUM_CLASSES = 3
+    BINARY_CLASSIFICATION = False
+
+    if BINARY_CLASSIFICATION:
+        CLASS_NAMES = ["Low (0-back)", "High (3-back)"]
+        NUM_CLASSES = 2
+    else:
+        CLASS_NAMES = ["Low (0-back)", "Medium (2-back)", "High (3-back)"]
+        NUM_CLASSES = 3
 
     EEG_COLUMNS = _eeg_cols if _has_eeg else _hbo_cols
     MODALITY2_COLUMNS = _fnirs_cols if _has_eeg else _hbr_cols
@@ -85,38 +91,46 @@ class Config:
 
     MODEL_TYPE = "hybrid_cnn_lstm"
 
-    CNN_FILTERS = [64, 96]
+    CNN_FILTERS = [32, 16]
     CNN_KERNEL_SIZE = 3
     CNN_DROPOUT = 0.5
 
-    LSTM_UNITS = [64, 32]
+    LSTM_UNITS = [32, 16]
     LSTM_DROPOUT = 0.5
 
     FUSION_TYPE = "attention"
     FUSION_DIM = 48
 
-    FC_UNITS = [48, 24]
+    FC_UNITS = [16]
     FC_DROPOUT = 0.6
 
     EPOCHS = 200
     BATCH_SIZE = 16
     LEARNING_RATE = 3e-4
     OPTIMIZER = "adamw"
-    WEIGHT_DECAY = 1e-4
+    WEIGHT_DECAY = 0.01
     LR_PATIENCE = 5
     EARLY_STOP = 12
     USE_CLASS_WEIGHTS = True
     CLASS_WEIGHT_MODE = "manual"  # "manual", "balanced", or "balanced_medium_boost"
-    CLASS_WEIGHTS = [1.08, 1.30, 1.10]
+    if getattr(sys.modules[__name__], "BINARY_CLASSIFICATION", False): # Use getattr since we defined it inside class Config
+        CLASS_WEIGHTS = [1.0, 1.0]
+    else:
+        CLASS_WEIGHTS = [1.08, 1.30, 1.10]
     MEDIUM_CLASS_WEIGHT_BOOST = 1.30
     LOSS_FN = "weighted_ce"  # "weighted_ce" or "focal"
     FOCAL_GAMMA = 2.0
-    CHECKPOINT_METRIC = "val_f1_macro"
+    CHECKPOINT_METRIC = "val_loss"
+
+    # DANN & Augmentation
+    USE_DANN = True
+    DANN_LAMBDA = 0.1
+    AUGMENT_NOISE = 0.05
 
     RUN_CV = False
     CV_FOLDS = 5
 
     OUTPUT_DIR = "outputs/"
     SAVE_MODEL = True
-    MODEL_PATH = "outputs/best_model.pt"
+    MODEL_PATH = "outputs/best_model_3class.pt"
     PRINT_EEG_LSTM_SHAPE = True

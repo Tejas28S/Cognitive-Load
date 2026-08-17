@@ -52,15 +52,18 @@ def configured_class_weights(labels, cfg: Config = None):
 # ── Dataset class ─────────────────────────────────────────────
 
 class CognitiveLoadDataset(Dataset):
-    def __init__(self, eeg_data, fnirs_data, labels):
+    def __init__(self, eeg_data, fnirs_data, labels, domains=None):
         self.eeg    = torch.tensor(eeg_data,   dtype=torch.float32)
         self.fnirs  = torch.tensor(fnirs_data,  dtype=torch.float32)
         self.labels = torch.tensor(labels,      dtype=torch.long)
+        self.domains = torch.tensor(domains, dtype=torch.long) if domains is not None else None
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
+        if self.domains is not None:
+            return self.eeg[idx], self.fnirs[idx], self.labels[idx], self.domains[idx]
         return self.eeg[idx], self.fnirs[idx], self.labels[idx]
 
 
@@ -76,6 +79,9 @@ class CognitiveLoadDataLoader:
         self.fnirs_cols   = None
         self.group_cols    = None
         self.eeg_sequence_shape = None
+        self.subjects = None
+        self.domains = None
+        self.n_domains = 0
 
     # ── Auto-detect columns from CSV header ───────────────────
 
@@ -302,8 +308,15 @@ class CognitiveLoadDataLoader:
 
         subject_col = getattr(cfg, "SUBJECT_COLUMN", "subject_id")
         subjects = None
+        domains = None
         if subject_col in df.columns:
             subjects = df[subject_col].astype(str).to_numpy()
+            unique_subjects = np.unique(subjects)
+            subj_to_id = {s: i for i, s in enumerate(unique_subjects)}
+            domains = np.array([subj_to_id[s] for s in subjects], dtype=np.int64)
+            self.subjects = subjects
+            self.domains = domains
+            self.n_domains = len(unique_subjects)
 
         groups = self._make_groups(df)
 
@@ -318,6 +331,24 @@ class CognitiveLoadDataLoader:
         eeg_raw   = df[eeg_cols].values.astype(np.float32)
         fnirs_raw = df[fn_cols].values.astype(np.float32)
         labels    = df[cfg.LABEL_COLUMN].values.astype(np.int64)
+
+        if getattr(cfg, "BINARY_CLASSIFICATION", False):
+            keep_idx = labels != 1
+            eeg_raw = eeg_raw[keep_idx]
+            fnirs_raw = fnirs_raw[keep_idx]
+            labels = labels[keep_idx]
+            if subjects is not None:
+                subjects = subjects[keep_idx]
+                self.subjects = subjects
+            if domains is not None:
+                domains = domains[keep_idx]
+                self.domains = domains
+            if groups is not None:
+                groups = groups[keep_idx]
+            
+            # Remap High class from 2 to 1
+            labels[labels == 2] = 1
+            print("   [Binary] Filtered 'Medium' (1) and remapped 'High' (2 -> 1).")
 
         # Clean NaNs / Infs
         eeg_raw   = np.nan_to_num(eeg_raw,   nan=0.0, posinf=0.0, neginf=0.0)
@@ -380,6 +411,9 @@ class CognitiveLoadDataLoader:
             fnirs_raw[test_idx],
         )
         y_train, y_val, y_test = labels[train_idx], labels[val_idx], labels[test_idx]
+        dom_train = self.domains[train_idx] if self.domains is not None else None
+        dom_val = self.domains[val_idx] if self.domains is not None else None
+        dom_test = self.domains[test_idx] if self.domains is not None else None
 
         if cfg.NORMALIZE:
             print("\n🔧 Normalizing (RobustScaler for EEG, StandardScaler for fNIRS; fit on train only) ...")
@@ -414,15 +448,15 @@ class CognitiveLoadDataLoader:
             print(f"   Class weights: {class_weights.numpy().round(3)}")
 
         train_loader = DataLoader(
-            CognitiveLoadDataset(eeg_train, fnirs_train, y_train),
+            CognitiveLoadDataset(eeg_train, fnirs_train, y_train, dom_train),
             batch_size=cfg.BATCH_SIZE, shuffle=True, drop_last=True, num_workers=0
         )
         val_loader = DataLoader(
-            CognitiveLoadDataset(eeg_val, fnirs_val, y_val),
+            CognitiveLoadDataset(eeg_val, fnirs_val, y_val, dom_val),
             batch_size=cfg.BATCH_SIZE, shuffle=False, num_workers=0
         )
         test_loader = DataLoader(
-            CognitiveLoadDataset(eeg_test, fnirs_test, y_test),
+            CognitiveLoadDataset(eeg_test, fnirs_test, y_test, dom_test),
             batch_size=cfg.BATCH_SIZE, shuffle=False, num_workers=0
         )
 
@@ -430,6 +464,7 @@ class CognitiveLoadDataLoader:
             "n_eeg_features"   : self.eeg_sequence_shape or eeg_raw.shape[1],
             "n_eeg_flat_features": eeg_raw.shape[1],
             "n_fnirs_features" : fnirs_raw.shape[1],
+            "n_domains"        : self.n_domains,
             "class_weights"    : class_weights,
             "y_test"           : y_test,
             "split_group_columns": self.group_cols,
@@ -460,6 +495,8 @@ class CognitiveLoadDataLoader:
         for fold, (tr_idx, va_idx) in enumerate(split_iter):
             eeg_tr,   fnirs_tr, y_tr = eeg_raw[tr_idx], fnirs_raw[tr_idx], labels[tr_idx]
             eeg_va,   fnirs_va, y_va = eeg_raw[va_idx], fnirs_raw[va_idx], labels[va_idx]
+            dom_tr = self.domains[tr_idx] if self.domains is not None else None
+            dom_va = self.domains[va_idx] if self.domains is not None else None
 
             if cfg.NORMALIZE:
                 es = RobustScaler(); fs = StandardScaler()
@@ -474,11 +511,11 @@ class CognitiveLoadDataLoader:
             class_weights = configured_class_weights(y_tr, cfg)
 
             tr_loader = DataLoader(
-                CognitiveLoadDataset(eeg_tr, fnirs_tr, y_tr),
+                CognitiveLoadDataset(eeg_tr, fnirs_tr, y_tr, dom_tr),
                 batch_size=cfg.BATCH_SIZE, shuffle=True, drop_last=True, num_workers=0
             )
             va_loader = DataLoader(
-                CognitiveLoadDataset(eeg_va, fnirs_va, y_va),
+                CognitiveLoadDataset(eeg_va, fnirs_va, y_va, dom_va),
                 batch_size=cfg.BATCH_SIZE, shuffle=False, num_workers=0
             )
 
@@ -486,6 +523,7 @@ class CognitiveLoadDataLoader:
                 "n_eeg_features"   : self.eeg_sequence_shape or eeg_raw.shape[1],
                 "n_eeg_flat_features": eeg_raw.shape[1],
                 "n_fnirs_features" : fnirs_raw.shape[1],
+                "n_domains"        : self.n_domains,
                 "class_weights"    : class_weights,
                 "y_val"            : y_va,
             }

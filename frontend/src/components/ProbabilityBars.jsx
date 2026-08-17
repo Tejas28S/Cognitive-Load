@@ -8,10 +8,13 @@ import {
   YAxis,
 } from "recharts";
 import { CLASS_COLORS, CLASS_NAMES } from "../constants";
+import { useChartColors, usePrefersReducedMotion } from "../lib/chartTheme";
 
 // Horizontal probability bars, one per class. The predicted (max) class is
 // drawn at full opacity; the others are dimmed so identity reads instantly.
 export default function ProbabilityBars({ probabilities, predicted }) {
+  const c = useChartColors();
+  const reduced = usePrefersReducedMotion();
   if (!probabilities) return null;
   const data = CLASS_NAMES.map((name) => ({
     name,
@@ -34,9 +37,9 @@ export default function ProbabilityBars({ probabilities, predicted }) {
             width={70}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#55606d", fontSize: 13, fontWeight: 600 }}
+            tick={{ fill: c.ink2, fontSize: 13, fontWeight: 600 }}
           />
-          <Bar dataKey="prob" radius={[4, 4, 4, 4]} barSize={26} isAnimationActive={false}>
+          <Bar dataKey="prob" radius={[4, 4, 4, 4]} barSize={26} isAnimationActive={!reduced} animationDuration={650}>
             {data.map((d) => (
               <Cell
                 key={d.name}
@@ -48,7 +51,7 @@ export default function ProbabilityBars({ probabilities, predicted }) {
               dataKey="prob"
               position="right"
               formatter={(v) => `${(v * 100).toFixed(1)}%`}
-              style={{ fill: "#55606d", fontSize: 12, fontWeight: 600 }}
+              style={{ fill: c.ink2, fontSize: 12, fontWeight: 600 }}
             />
           </Bar>
         </BarChart>

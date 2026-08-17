@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import Adam, AdamW
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 from config import Config
@@ -36,9 +36,10 @@ class FocalLoss(nn.Module):
 def build_criterion(cfg, class_weights, device):
     weights = class_weights.to(device) if class_weights is not None else None
     loss_name = getattr(cfg, "LOSS_FN", "weighted_ce").lower()
+    label_smoothing = getattr(cfg, "LABEL_SMOOTHING", 0.0)
 
     if loss_name == "weighted_ce":
-        return nn.CrossEntropyLoss(weight=weights)
+        return nn.CrossEntropyLoss(weight=weights, label_smoothing=label_smoothing)
     if loss_name == "focal":
         return FocalLoss(alpha=weights, gamma=float(getattr(cfg, "FOCAL_GAMMA", 2.0)))
     raise ValueError("Config.LOSS_FN must be 'weighted_ce' or 'focal'")
@@ -94,27 +95,64 @@ class EarlyStopping:
 
 # ── One epoch ─────────────────────────────────────────────────
 
+def mixup_data(eeg, fnirs, y, alpha=1.0, device='cuda'):
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+    batch_size = eeg.size()[0]
+    index = torch.randperm(batch_size).to(device)
+    mixed_eeg = lam * eeg + (1 - lam) * eeg[index, :]
+    mixed_fnirs = lam * fnirs + (1 - lam) * fnirs[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_eeg, mixed_fnirs, y_a, y_b, lam
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
 def run_epoch(model, loader, criterion, optimizer, device,
               training=True, is_unimodal=False, modality="eeg",
-              epoch_bar=None):
+              epoch_bar=None, cfg=None):
     model.train() if training else model.eval()
     total_loss, correct, total = 0.0, 0, 0
 
+    mixup_alpha = getattr(cfg, "MIXUP_ALPHA", 0.0) if training and cfg else 0.0
+
     ctx = torch.enable_grad() if training else torch.no_grad()
     with ctx:
-        for eeg, fnirs, labels in loader:
-            eeg, fnirs, labels = eeg.to(device), fnirs.to(device), labels.to(device)
+        for batch in loader:
+            eeg, fnirs, labels = batch[0].to(device), batch[1].to(device), batch[2].to(device)
+            domains = batch[3].to(device) if len(batch) > 3 else None
 
             if training:
                 optimizer.zero_grad()
 
-            if is_unimodal:
-                inp    = eeg if modality == "eeg" else fnirs
-                logits = model(inp)
-            else:
-                logits = model(eeg, fnirs)
+            if training and getattr(cfg, "AUGMENT_NOISE", 0.0) > 0:
+                eeg = eeg + torch.randn_like(eeg) * cfg.AUGMENT_NOISE
+                fnirs = fnirs + torch.randn_like(fnirs) * cfg.AUGMENT_NOISE
 
-            loss = criterion(logits, labels)
+            apply_mixup = training and mixup_alpha > 0 and not is_unimodal
+            if apply_mixup:
+                eeg, fnirs, targets_a, targets_b, lam = mixup_data(eeg, fnirs, labels, mixup_alpha, device)
+
+            use_dann = training and getattr(cfg, "USE_DANN", False) and domains is not None
+            if use_dann:
+                task_logits, domain_logits = model.forward_dann(eeg, fnirs, lambda_=getattr(cfg, "DANN_LAMBDA", 0.1))
+                loss_task = criterion(task_logits, labels)
+                loss_domain = nn.CrossEntropyLoss()(domain_logits, domains)
+                loss = loss_task + loss_domain
+                logits = task_logits
+            else:
+                if is_unimodal:
+                    inp    = eeg if modality == "eeg" else fnirs
+                    logits = model(inp)
+                else:
+                    logits = model(eeg, fnirs)
+
+                if apply_mixup:
+                    loss = mixup_criterion(criterion, logits, targets_a, targets_b, lam)
+                else:
+                    loss = criterion(logits, labels)
 
             if training:
                 loss.backward()
@@ -123,8 +161,13 @@ def run_epoch(model, loader, criterion, optimizer, device,
 
             total_loss += loss.item() * labels.size(0)
             preds       = logits.argmax(dim=1)
-            correct    += (preds == labels).sum().item()
-            total      += labels.size(0)
+            
+            if apply_mixup:
+                correct += (lam * (preds == targets_a).sum().item() + (1 - lam) * (preds == targets_b).sum().item())
+            else:
+                correct += (preds == labels).sum().item()
+            
+            total += labels.size(0)
 
             if epoch_bar:
                 epoch_bar.set_postfix({
@@ -145,16 +188,27 @@ def train_model(model, train_loader, val_loader, meta,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model  = model.to(device)
 
+    if getattr(cfg, "USE_DANN", False) and "n_domains" in meta:
+        model.attach_domain_head(n_domains=meta["n_domains"]).to(device)
+
     cw        = meta.get("class_weights")
     criterion = build_criterion(cfg, cw, device)
     optimizer = build_optimizer(model, cfg)
-    scheduler = ReduceLROnPlateau(optimizer, mode='max',
-                                  patience=cfg.LR_PATIENCE, factor=0.5)
+    
+    lr_scheduler_type = getattr(cfg, "LR_SCHEDULER", "plateau").lower()
+    metric = getattr(cfg, "CHECKPOINT_METRIC", "val_f1_macro")
+    mode = "min" if "loss" in metric else "max"
+    
+    if lr_scheduler_type == "cosine":
+        scheduler = CosineAnnealingLR(optimizer, T_max=cfg.EPOCHS, eta_min=1e-6)
+    else:
+        scheduler = ReduceLROnPlateau(optimizer, mode=mode,
+                                      patience=cfg.LR_PATIENCE, factor=0.5)
     es = EarlyStopping(
         patience=cfg.EARLY_STOP,
         path=cfg.MODEL_PATH,
-        mode="max",
-        metric_name=getattr(cfg, "CHECKPOINT_METRIC", "val_f1_macro"),
+        mode=mode,
+        metric_name=metric,
     )
 
     history = {"train_loss": [], "val_loss": [],
@@ -196,7 +250,7 @@ def train_model(model, train_loader, val_loader, meta,
         tr_loss, tr_acc = run_epoch(model, train_loader, criterion,
                                     optimizer, device, training=True,
                                     is_unimodal=is_unimodal, modality=modality,
-                                    epoch_bar=batch_bar)
+                                    epoch_bar=batch_bar, cfg=cfg)
         batch_bar.close()
 
         va_loss, va_acc = run_epoch(model, val_loader, criterion,
@@ -206,8 +260,12 @@ def train_model(model, train_loader, val_loader, meta,
             model, val_loader, device,
             is_unimodal=is_unimodal, modality=modality,
         )
-        checkpoint_score = va_metrics["f1_macro"]
-        scheduler.step(checkpoint_score)
+        checkpoint_score = va_metrics["f1_macro"] if "f1_macro" in metric else va_loss
+        
+        if isinstance(scheduler, ReduceLROnPlateau):
+            scheduler.step(checkpoint_score)
+        else:
+            scheduler.step()
 
         history["train_loss"].append(tr_loss)
         history["val_loss"].append(va_loss)
@@ -232,7 +290,7 @@ def train_model(model, train_loader, val_loader, meta,
         if es(checkpoint_score, model):
             epoch_pbar.write(
                 f"\n  ⏹  Early stop @ epoch {epoch} | "
-                f"best val macro F1: {es.best_score:.4f} | "
+                f"best val score ({metric}): {es.best_score:.4f} | "
                 f"best val acc: {max(history['val_acc']):.2%}"
             )
             break
@@ -254,8 +312,8 @@ def train_model(model, train_loader, val_loader, meta,
 def _validation_metrics(model, loader, device, is_unimodal=False, modality="eeg"):
     model.eval()
     all_probs, all_labels = [], []
-    for eeg, fnirs, labels in loader:
-        eeg, fnirs = eeg.to(device), fnirs.to(device)
+    for batch in loader:
+        eeg, fnirs, labels = batch[0].to(device), batch[1].to(device), batch[2]
         if is_unimodal:
             inp = eeg if modality == "eeg" else fnirs
             logits = model(inp)

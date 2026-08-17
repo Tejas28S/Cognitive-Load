@@ -1,7 +1,7 @@
 // Hand-drawn architecture of the served model: two modality encoders fuse under
 // a learned attention gate into a small classifier head (the Hybrid net), whose
 // softmax is probability-averaged (½·½) with a Random Forest over the same
-// features — the locked Hybrid+RF ensemble. Inputs carry the modality colors.
+// features - the locked Hybrid+RF ensemble. Inputs carry the modality colors.
 export default function ArchitectureDiagram() {
   return (
     <div className="chart-wrap">

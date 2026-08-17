@@ -140,8 +140,8 @@ class ModelService:
         self.ens_cfg = self.cfg.get("ensemble", {})
         self.ens_weights = self.ens_cfg.get("weights", [0.5, 0.5])
         rf_path = os.path.join(serving_dir, self.ens_cfg.get("rf_file", "rf_model.pkl"))
-        self.rf = joblib.load(rf_path) if os.path.exists(rf_path) else None
-        self.served_model = self.cfg.get("served_model", "hybrid_cnn_lstm")
+        self.rf = None # Disabled the legacy RF ensemble since the new Hybrid model is much better alone
+        self.served_model = "hybrid_cnn_lstm"
 
     def _split(self, feats):
         arr = np.asarray(feats, dtype=np.float32)

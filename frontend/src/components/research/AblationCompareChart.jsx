@@ -9,9 +9,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { usePrefersReducedMotion } from "../../lib/chartTheme";
 
-const AXIS = "#8a94a1";
-const GRID = "#eef0f3";
+// Theme tokens (SVG text/stroke accept var() - resolves live per light/dark).
+const AXIS = "var(--ink-3)";
+const GRID = "var(--border)";
 
 // Reusable grouped-bar comparison for the decision-gate ablations (HbR 468 vs
 // 936, classical RF/XGB/SVM). Magnitude → bars; identity of each config → a
@@ -24,6 +26,7 @@ export default function AblationCompareChart({
   domain = [0, 0.6],
   unit = "macro F1",
 }) {
+  const reduced = usePrefersReducedMotion();
   return (
     <div className="chart-wrap">
       <ResponsiveContainer width="100%" height={height}>
@@ -36,9 +39,9 @@ export default function AblationCompareChart({
           <CartesianGrid stroke={GRID} vertical={false} />
           <XAxis
             dataKey={categoryKey}
-            tick={{ fill: "#55606d", fontSize: 12.5, fontWeight: 500 }}
+            tick={{ fill: "var(--ink-2)", fontSize: 12.5, fontWeight: 500 }}
             tickLine={false}
-            axisLine={{ stroke: "#e4e7eb" }}
+            axisLine={{ stroke: "var(--border)" }}
           />
           <YAxis
             domain={domain}
@@ -48,7 +51,7 @@ export default function AblationCompareChart({
             width={38}
           />
           <Tooltip
-            cursor={{ fill: "rgba(79,70,229,0.05)" }}
+            cursor={{ fill: "rgba(var(--accent-rgb), 0.06)" }}
             content={<GroupTooltip series={series} unit={unit} />}
           />
           <Legend
@@ -57,7 +60,7 @@ export default function AblationCompareChart({
             height={30}
             iconType="circle"
             iconSize={9}
-            wrapperStyle={{ fontSize: 12.5, color: "#47525f" }}
+            wrapperStyle={{ fontSize: 12.5, color: "var(--ink-2)" }}
           />
           {series.map((s) => (
             <Bar
@@ -67,7 +70,8 @@ export default function AblationCompareChart({
               fill={s.color}
               radius={[4, 4, 0, 0]}
               maxBarSize={54}
-              isAnimationActive={false}
+              isAnimationActive={!reduced}
+              animationDuration={700}
             >
               {series.length <= 2 && (
                 <LabelList

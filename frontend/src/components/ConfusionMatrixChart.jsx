@@ -9,12 +9,14 @@ export default function ConfusionMatrixChart({ matrix, title }) {
 
   const cellColor = (v, rowIdx) => {
     const share = rowTotals[rowIdx] ? v / rowTotals[rowIdx] : 0;
-    // indigo ramp: light surface -> #4f46e5
-    return `rgba(79, 70, 229, ${0.08 + 0.82 * share})`;
+    // Accent ramp keyed to the theme's accent RGB (works in light + dark).
+    return `rgba(var(--accent-rgb), ${0.08 + 0.82 * share})`;
   };
   const textColor = (v, rowIdx) => {
     const share = rowTotals[rowIdx] ? v / rowTotals[rowIdx] : 0;
-    return share > 0.5 ? "#fff" : "#1c2530";
+    // High-share cells get white ink; low-share cells sit on near-surface, so
+    // use the theme's primary ink (readable in both light and dark).
+    return share > 0.5 ? "#fff" : "var(--ink)";
   };
 
   return (
@@ -78,7 +80,7 @@ function RowFragment({ label, row, r, cellColor, textColor }) {
             fontSize: 15,
             fontVariantNumeric: "tabular-nums",
             color: textColor(v, r),
-            outline: r === c ? "2px solid rgba(79,70,229,0.55)" : "none",
+            outline: r === c ? "2px solid rgba(var(--accent-rgb), 0.55)" : "none",
             outlineOffset: -2,
           }}
         >

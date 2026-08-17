@@ -11,11 +11,14 @@ import MetricStat from "../components/research/MetricStat";
 import ProtocolBenchmarkChart from "../components/research/ProtocolBenchmarkChart";
 import LambdaSweepChart from "../components/research/LambdaSweepChart";
 import SubjectProbeBar from "../components/research/SubjectProbeBar";
+import SubjectProbeScatter from "../components/research/SubjectProbeScatter";
+import CalibrationLatencyPanel from "../components/research/CalibrationLatencyPanel";
 import AblationCompareChart from "../components/research/AblationCompareChart";
 import ArchitectureDiagram from "../components/ArchitectureDiagram";
 import DannDiagram from "../components/DannDiagram";
 import ShapChart from "../components/ShapChart";
 import ModalityContribution from "../components/ModalityContribution";
+import AnimatedBand from "../components/AnimatedBand";
 
 const SECTIONS = [
   { id: "problem", label: "Problem & thesis" },
@@ -28,9 +31,9 @@ const SECTIONS = [
   { id: "limits", label: "Limitations" },
 ];
 
-const pct = (x) => (x == null ? "—" : `${(x * 100).toFixed(1)}%`);
-const f3 = (x) => (x == null ? "—" : Number(x).toFixed(3));
-const signed = (x, d = 4) => (x == null ? "—" : `${x >= 0 ? "+" : ""}${Number(x).toFixed(d)}`);
+const pct = (x) => (x == null ? "-" : `${(x * 100).toFixed(1)}%`);
+const f3 = (x) => (x == null ? "-" : Number(x).toFixed(3));
+const signed = (x, d = 4) => (x == null ? "-" : `${x >= 0 ? "+" : ""}${Number(x).toFixed(d)}`);
 
 export default function Research() {
   const { data, loading, error } = useApi(async () => {
@@ -46,6 +49,7 @@ export default function Research() {
   return (
     <>
       <header className="band-dark page-hero">
+        <AnimatedBand />
         <div className="hero-inner">
           <div className="eyebrow">Capstone · research dossier</div>
           <h1 className="hero-title" style={{ marginTop: 14 }}>
@@ -54,8 +58,8 @@ export default function Research() {
           <p className="hero-lede" style={{ marginTop: 12 }}>
             Every claim here is judged by the same rule the project applied to its
             own model: adopt a change only when it clears a paired-significance
-            decision gate. That discipline — and the rigorous negative results it
-            produced — is the contribution.
+            decision gate. That discipline - and the rigorous negative results it
+            produced - is the contribution.
           </p>
           <SignalTrace className="hero-signal" height={54} strokeWidth={2.4} animate glow />
         </div>
@@ -86,7 +90,7 @@ function Body({ research, metrics, shap, attention }) {
 
   return (
     <div className="stack-lg">
-      {/* 1 — Problem & thesis */}
+      {/* 1 - Problem & thesis */}
       <section className="section" id="problem">
         <SecHead
           n="01"
@@ -96,7 +100,7 @@ function Body({ research, metrics, shap, attention }) {
         <Reveal className="stack">
           <p>
             Published EEG/fNIRS workload accuracies of 60–90% usually answer an{" "}
-            <em>easier</em> question — a binary task, or a within-subject split
+            <em>easier</em> question - a binary task, or a within-subject split
             where the same person appears in training and test, letting the model
             lean on that person's physiological baseline. This project reports the
             harder setup end to end: <strong>3-class</strong> load
@@ -119,18 +123,18 @@ function Body({ research, metrics, shap, attention }) {
           </div>
           <p className="muted" style={{ fontSize: "0.9rem" }}>
             The two numbers answer different questions and are always shown
-            together — fixed-split measures performance when a subject's other
+            together - fixed-split measures performance when a subject's other
             trials can appear in training; LOSO measures generalization to a new
             person. The gap between them is a finding, not a footnote.
           </p>
         </Reveal>
       </section>
 
-      {/* 2 — Data & task */}
+      {/* 2 - Data & task */}
       <section className="section" id="data">
         <SecHead
           n="02"
-          title="TU Berlin / Shin n-back — 26 people, two synchronized signals"
+          title="TU Berlin / Shin n-back - 26 people, two synchronized signals"
           lede="Each trial pairs electrical (EEG) and hemodynamic (fNIRS) recordings while a participant holds an n-back working-memory load."
         />
         <Reveal>
@@ -143,15 +147,15 @@ function Body({ research, metrics, shap, attention }) {
                 <strong>2-back → Medium</strong>, <strong>3-back → High</strong>.
               </p>
               <ul className="feat-list">
-                <li><span className="swatch" style={{ background: "var(--eeg)" }} /> <strong>180 EEG features</strong> — band powers (α, β, δ, θ, γ) + engagement across 30 channels</li>
-                <li><span className="swatch" style={{ background: "var(--fnirs)" }} /> <strong>468 fNIRS (HbO) features</strong> — hemodynamic response-shape descriptors</li>
+                <li><span className="swatch" style={{ background: "var(--eeg)" }} /> <strong>180 EEG features</strong> - band powers (α, β, δ, θ, γ) + engagement across 30 channels</li>
+                <li><span className="swatch" style={{ background: "var(--fnirs)" }} /> <strong>468 fNIRS (HbO) features</strong> - hemodynamic response-shape descriptors</li>
               </ul>
             </div>
             <div className="card">
               <h3>Why the signals differ</h3>
               <p>
-                EEG is fast and electrical — millisecond spikes. fNIRS is slow and
-                hemodynamic — a blood-oxygenation curve that rises and settles over
+                EEG is fast and electrical - millisecond spikes. fNIRS is slow and
+                hemodynamic - a blood-oxygenation curve that rises and settles over
                 seconds. Fusing them is the modelling premise, and the trace in the
                 header is exactly that: spikes on the left relaxing into a smooth
                 response on the right.
@@ -162,7 +166,7 @@ function Body({ research, metrics, shap, attention }) {
         </Reveal>
       </section>
 
-      {/* 3 — The model */}
+      {/* 3 - The model */}
       <section className="section" id="model">
         <SecHead
           n="03"
@@ -185,28 +189,28 @@ function Body({ research, metrics, shap, attention }) {
             <VerdictCallout tone="ok" stamp="Adopted" title="Hybrid + RF ensemble">
               Ensemble LOSO macro F1 {f3(ens.f1_mean)} &gt; Hybrid {f3(hyb.f1_mean)};
               minimum mean class recall {f3(ens.recall_mean?.[2])} on High load. The
-              frozen Hybrid weights are unchanged — the Random Forest is layered on
+              frozen Hybrid weights are unchanged - the Random Forest is layered on
               at inference.
             </VerdictCallout>
           </div>
         </Reveal>
       </section>
 
-      {/* 4 — Protocol taxonomy */}
+      {/* 4 - Protocol taxonomy */}
       <section className="section" id="protocol">
         <SecHead
           n="04"
           title="Why 60–90% in the literature is a different, easier problem"
-          lede="Run the same Random Forest across two protocol axes and the apparent gap resolves into two causes — one that this project already neutralizes, and one it deliberately keeps."
+          lede="Run the same Random Forest across two protocol axes and the apparent gap resolves into two causes - one that this project already neutralizes, and one it deliberately keeps."
         />
         <Reveal className="stack">
-          <Figure num="2" title="Same estimator, same features — only the protocol changes."
+          <Figure num="2" title="Same estimator, same features - only the protocol changes."
             source={src("protocol")}>
             <ProtocolBenchmarkChart protocol={research?.protocol} />
           </Figure>
           <p>
             <strong>Subject leakage is minor here.</strong> Once per-subject
-            normalization is applied, within-subject and LOSO macro F1 are close —
+            normalization is applied, within-subject and LOSO macro F1 are close -
             so the honest LOSO figure is <em>not</em> propped up by cross-subject
             leakage. <strong>Task difficulty is the real gap:</strong> collapsing
             to a binary Low-vs-High task lifts LOSO macro F1 by roughly +0.20. Much
@@ -216,12 +220,12 @@ function Body({ research, metrics, shap, attention }) {
         </Reveal>
       </section>
 
-      {/* 5 — DANN (novel) */}
+      {/* 5 - DANN (novel) */}
       <section className="section" id="dann">
         <SecHead
           n="05"
-          title="Novel contribution — training the representation to forget who"
-          lede="A domain-adversarial network attacks the subject-variability ceiling directly: make the fused embedding predict load but not identity. Applied rigorously, it is correctly declined — and the reason is itself the finding."
+          title="Novel contribution - training the representation to forget who"
+          lede="A domain-adversarial network attacks the subject-variability ceiling directly: make the fused embedding predict load but not identity. Applied rigorously, it is correctly declined - and the reason is itself the finding."
         />
         <Reveal className="stack">
           <Figure num="3" title="Gradient reversal makes the encoder erase subject identity."
@@ -262,12 +266,18 @@ function Body({ research, metrics, shap, attention }) {
             s={research?.dann?.significance_dann_vs_baseline?.ensemble_dann_vs_base}
           />
 
-          <Figure num="6" title="Subject-invariance probe — can identity still be recovered from the embedding?"
-            source={src("dann")}>
-            <SubjectProbeBar probe={research?.dann?.subject_invariance_probe} />
-          </Figure>
+          <div className="grid grid-2">
+            <Figure num="6" title="Subject-invariance probe - can identity still be recovered from the embedding?"
+              source={src("dann")}>
+              <SubjectProbeBar probe={research?.dann?.subject_invariance_probe} />
+            </Figure>
+            <Figure num="6b" title="Per-subject probe across all 26 LOSO folds - both hug chance."
+              source={src("dann")}>
+              <SubjectProbeScatter probe={research?.dann?.subject_invariance_probe} />
+            </Figure>
+          </div>
 
-          <VerdictCallout tone="stop" stamp="Not adopted" title="DANN — an honest, explained negative result">
+          <VerdictCallout tone="stop" stamp="Not adopted" title="DANN - an honest, explained negative result">
             No significant ensemble-level lift (Δ{" "}
             {signed(research?.dann?.significance_dann_vs_baseline?.ensemble_dann_vs_base?.mean_diff)},
             Wilcoxon p≈{f3(research?.dann?.significance_dann_vs_baseline?.ensemble_dann_vs_base?.wilcoxon_p)}),
@@ -276,18 +286,18 @@ function Body({ research, metrics, shap, attention }) {
             here (§04), the baseline embedding is <em>already</em> near chance for
             subject-id recovery ({f3(research?.dann?.subject_invariance_probe?.baseline_probe_acc_mean)}{" "}
             vs {f3(research?.dann?.subject_invariance_probe?.chance_mean)} chance), so
-            there is nothing harmful for the adversary to strip — it only injects
+            there is nothing harmful for the adversary to strip - it only injects
             noise. The cross-subject difficulty is genuine task difficulty, not a
             decodable identity confound.
           </VerdictCallout>
         </Reveal>
       </section>
 
-      {/* 6 — Decision gates */}
+      {/* 6 - Decision gates */}
       <section className="section" id="gates">
         <SecHead
           n="06"
-          title="One gate, applied to every candidate — including the ones that lost"
+          title="One gate, applied to every candidate - including the ones that lost"
           lede="A change enters serving only on a clear, significant, both-tests improvement on the ensemble. Two more candidates were measured and declined."
         />
         <Reveal className="stack">
@@ -322,18 +332,35 @@ function Body({ research, metrics, shap, attention }) {
             </Figure>
           </div>
 
+          <Figure num="8b" title="Inside the ensemble: RF, XGB, and RF+XGB heads on the Hybrid - nothing clears the gate."
+            source={src("classical")}>
+            <AblationCompareChart
+              data={[
+                { config: "Hybrid + RF (served)", f1: research?.classical?.task2?.ensembles?.["hybrid+rf"]?.f1_mean, recall: research?.classical?.task2?.ensembles?.["hybrid+rf"]?.min_recall },
+                { config: "Hybrid + XGB", f1: research?.classical?.task2?.ensembles?.["hybrid+xgb"]?.f1_mean, recall: research?.classical?.task2?.ensembles?.["hybrid+xgb"]?.min_recall },
+                { config: "Hybrid + RF + XGB", f1: research?.classical?.task2?.ensembles?.["hybrid+rf+xgb"]?.f1_mean, recall: research?.classical?.task2?.ensembles?.["hybrid+rf+xgb"]?.min_recall },
+              ]}
+              categoryKey="config"
+              series={[
+                { key: "f1", name: "Macro F1 (LOSO)", color: COMPARE_COLORS[0] },
+                { key: "recall", name: "Min class recall", color: COMPARE_COLORS[1] },
+              ]}
+              domain={[0, 0.5]}
+            />
+          </Figure>
+
           <div className="grid grid-2">
             <VerdictCallout tone="warn" stamp="Retained: HbO-only" title="HbR ablation">
               HbR clearly helps the Hybrid net alone (Δ
               {signed(research?.hbr?.significance_936_vs_468?.hybrid_936_vs_468?.mean_diff)},
-              both tests p≈0.002), but the <em>ensemble</em> — the served config the
-              gate turns on — is only borderline (t p=
+              both tests p≈0.002), but the <em>ensemble</em> - the served config the
+              gate turns on - is only borderline (t p=
               {f3(research?.hbr?.significance_936_vs_468?.ensemble_936_vs_468?.t_p)},
               Wilcoxon p=
               {f3(research?.hbr?.significance_936_vs_468?.ensemble_936_vs_468?.wilcoxon_p)}),
               and on the real served split the gain is only{" "}
               {signed(research?.hbr_served_split?.delta_936_minus_468?.macro_f1, 3)} macro
-              F1. Default to HbO-only for parsimony — confirmed by ablation, not
+              F1. Default to HbO-only for parsimony - confirmed by ablation, not
               assumption.
             </VerdictCallout>
             <VerdictCallout tone="warn" stamp="Ruled out" title="XGBoost / SVM">
@@ -346,18 +373,23 @@ function Body({ research, metrics, shap, attention }) {
               ceiling.
             </VerdictCallout>
           </div>
+
+          <Figure num="8c" title="Served end-to-end: the leaner 468 model matches the 936 prototype on calibration and latency."
+            source={src("hbr")}>
+            <CalibrationLatencyPanel served={research?.hbr_served_split} />
+          </Figure>
         </Reveal>
       </section>
 
-      {/* 7 — Explainability */}
+      {/* 7 - Explainability */}
       <section className="section" id="explain">
         <SecHead
           n="07"
           title="Three independent lenses agree: fNIRS carries the signal"
-          lede="SHAP attributions, the learned attention gate, and Random-Forest importance all point the same way — the model leans on hemodynamic response shape."
+          lede="SHAP attributions, the learned attention gate, and Random-Forest importance all point the same way - the model leans on hemodynamic response shape."
         />
         <Reveal className="stack">
-          <Figure num="9" title="Mean |SHAP| by feature category — fNIRS HbO response-shape dominates."
+          <Figure num="9" title="Mean |SHAP| by feature category - fNIRS HbO response-shape dominates."
             source="shap.json">
             <ShapChart categories={shap?.categories} height={320} />
           </Figure>
@@ -371,7 +403,7 @@ function Body({ research, metrics, shap, attention }) {
               <p className="stat-sub" style={{ marginTop: 10 }}>
                 The attention gate leans slightly toward fNIRS
                 ({pct(attention?.overall?.fnirs_share)} vs{" "}
-                {pct(attention?.overall?.eeg_share)}) — consistent with SHAP and
+                {pct(attention?.overall?.eeg_share)}) - consistent with SHAP and
                 with EEG-only models repeatedly failing an AUC ≥ 0.55 gate.
               </p>
             </div>
@@ -379,7 +411,7 @@ function Body({ research, metrics, shap, attention }) {
               <h3>Physiologically plausible</h3>
               <p>
                 For an n-back task the model relies on the <em>shape</em> of the
-                hemodynamic response — skew, early-window rise, slope, peak — while
+                hemodynamic response - skew, early-window rise, slope, peak - while
                 retaining weaker EEG band-power cues. It is not keying on a single
                 arbitrary feature. See the{" "}
                 <Link to="/insights">Model Insights</Link> page for per-class
@@ -390,12 +422,12 @@ function Body({ research, metrics, shap, attention }) {
         </Reveal>
       </section>
 
-      {/* 8 — Limitations */}
+      {/* 8 - Limitations */}
       <section className="section" id="limits">
         <SecHead
           n="08"
           title="What this does not claim"
-          lede="The honest framing cuts both ways — here is where the result is bounded."
+          lede="The honest framing cuts both ways - here is where the result is bounded."
         />
         <Reveal className="stack">
           <div className="grid grid-2">

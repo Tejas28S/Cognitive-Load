@@ -7,14 +7,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartTooltip from "./ChartTooltip";
+import { useChartColors, usePrefersReducedMotion } from "../lib/chartTheme";
 
 // Horizontal bar chart of mean |SHAP| importance by feature category.
 // Single-series magnitude → one hue (indigo), sorted descending.
 export default function ShapChart({ categories, height = 300 }) {
+  const c = useChartColors();
+  const reduced = usePrefersReducedMotion();
   if (!categories || categories.length === 0) return null;
   const data = [...categories]
     .sort((a, b) => b.mean_abs_shap - a.mean_abs_shap)
-    .map((c) => ({ category: c.category, value: c.mean_abs_shap }));
+    .map((cat) => ({ category: cat.category, value: cat.mean_abs_shap }));
 
   return (
     <div className="chart-wrap">
@@ -31,18 +35,18 @@ export default function ShapChart({ categories, height = 300 }) {
             width={170}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#55606d", fontSize: 12 }}
+            tick={{ fill: c.ink2, fontSize: 12 }}
           />
           <Tooltip
-            formatter={(v) => [Number(v).toFixed(4), "mean |SHAP|"]}
-            contentStyle={{ borderRadius: 8, border: "1px solid #e4e7eb", fontSize: 12 }}
+            cursor={{ fill: c.grid, fillOpacity: 0.3 }}
+            content={<ChartTooltip format={(v) => Number(v).toFixed(4)} />}
           />
-          <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 4, 4]} barSize={18} isAnimationActive={false}>
+          <Bar dataKey="value" name="mean |SHAP|" fill={c.accent} radius={[4, 4, 4, 4]} barSize={18} isAnimationActive={!reduced} animationDuration={700}>
             <LabelList
               dataKey="value"
               position="right"
               formatter={(v) => Number(v).toFixed(3)}
-              style={{ fill: "#8a94a1", fontSize: 11 }}
+              style={{ fill: c.axis, fontSize: 11 }}
             />
           </Bar>
         </BarChart>

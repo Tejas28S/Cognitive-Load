@@ -5,9 +5,9 @@
 export const CLASS_NAMES = ["Low", "Medium", "High"];
 
 export const CLASS_COLORS = {
-  Low: "#0d9488", // teal — calm / under-engaged end
-  Medium: "#d97706", // amber — the sustained-engagement middle
-  High: "#dc2626", // red — high load / fatigue-risk end
+  Low: "#0d9488", // teal - calm / under-engaged end
+  Medium: "#d97706", // amber - the sustained-engagement middle
+  High: "#dc2626", // red - high load / fatigue-risk end
 };
 
 // Softer fills for backgrounds / shaded zones.
@@ -35,4 +35,4 @@ export const labelName = (idx) => CLASS_NAMES[idx] ?? String(idx);
 
 export const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
 export const fmt = (x, d = 4) =>
-  x === null || x === undefined || Number.isNaN(x) ? "—" : Number(x).toFixed(d);
+  x === null || x === undefined || Number.isNaN(x) ? "-" : Number(x).toFixed(d);

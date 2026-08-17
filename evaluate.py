@@ -24,8 +24,8 @@ plt.rcParams.update({"figure.dpi": 130, "font.size": 11})
 def predict(model, loader, device, is_unimodal=False, modality="eeg"):
     model.eval()
     all_preds, all_probs, all_labels = [], [], []
-    for eeg, fnirs, labels in loader:
-        eeg, fnirs = eeg.to(device), fnirs.to(device)
+    for batch in loader:
+        eeg, fnirs, labels = batch[0].to(device), batch[1].to(device), batch[2]
         inp    = eeg if (is_unimodal and modality == "eeg") else \
                  (fnirs if is_unimodal else None)
         logits = model(inp) if is_unimodal else model(eeg, fnirs)

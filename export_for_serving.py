@@ -19,6 +19,7 @@ subject's own stats — a DEMO-MODE simplification (known subjects), not
 production behaviour for genuinely unseen subjects. See Task 2.3 in the plan.
 """
 
+import argparse
 import copy
 import json
 import os
@@ -34,10 +35,15 @@ from config import Config
 from data_loader import CognitiveLoadDataLoader
 from models.architectures import build_model
 
-FROZEN_HYBRID = os.path.join("outputs", "phase3_per-subject_normalization_before_log.pt")
-SERVING = "serving"
+parser = argparse.ArgumentParser()
+parser.add_argument("--model", type=str, default="outputs/hybrid_best.pt")
+parser.add_argument("--serving_dir", type=str, default="serving")
+args = parser.parse_args()
+
+FROZEN_HYBRID = args.model
+SERVING = args.serving_dir
 FRONTEND = os.path.join(SERVING, "frontend_data")
-LABELS = ["Low", "Medium", "High"]
+LABELS = ["Low", "High"] if "binary" in FROZEN_HYBRID or "best_model.pt" in FROZEN_HYBRID else ["Low", "Medium", "High"]
 
 # Ensemble spec — must match part1_rigor.py exactly (fixed-split Hybrid+RF).
 RF_ESTIMATORS = 400
@@ -91,7 +97,8 @@ def export_model_and_scaler(cfg, fs, device):
     os.makedirs(SERVING, exist_ok=True)
     model = build_model("hybrid_cnn_lstm", fs["n_eeg"], fs["n_fnirs"], cfg).to(device)
     state = torch.load(FROZEN_HYBRID, map_location=device)
-    model.load_state_dict(state)
+    model.load_state_dict(state, strict=False)
+    # Save the serving weights without the domain head
     torch.save(model.state_dict(), os.path.join(SERVING, "model_weights.pt"))
 
     model_config = {
@@ -131,7 +138,7 @@ def export_model_and_scaler(cfg, fs, device):
         os.path.join(SERVING, "feature_scaler.pkl"),
     )
     with open(os.path.join(SERVING, "label_map.json"), "w", encoding="utf-8") as f:
-        json.dump({"0": "Low", "1": "Medium", "2": "High"}, f, indent=2)
+        json.dump({"0": "Low", "1": "High"}, f, indent=2)
     print("Exported model_weights.pt, model_config.json, feature_scaler.pkl, label_map.json")
     return model, model_config
 
@@ -289,7 +296,7 @@ def export_upload_schema(cfg, fs):
             "order": ["nan_to_num", "per_subject_zscore", "log", "saved_scalers"],
             "per_subject_normalize": bool(cfg.PER_SUBJECT_NORMALIZE),
             "per_subject_stage": cfg.PER_SUBJECT_NORMALIZE_STAGE,
-            "per_subject_eps": float(cfg.PER_SUBJECT_NORMALIZE_EPS),
+            "per_subject_eps": float(getattr(cfg, "PER_SUBJECT_NORMALIZE_EPS", 1e-8)),
             "eeg_log": "log1p_clip_nonneg",   # EEG_LOG_MODE="clip"
             "fnirs_log": "signed_log1p",
         },

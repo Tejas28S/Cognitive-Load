@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import TrendChart from "../components/TrendChart";
+import ExportMenu from "../components/ExportMenu";
 import { getSubjects, predictSession } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
+import { stampFilename } from "../lib/exportData";
 
 export default function SessionTrend() {
   const { data: subjects, loading, error } = useApi(getSubjects);
@@ -9,6 +11,7 @@ export default function SessionTrend() {
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(false);
   const [sErr, setSErr] = useState(null);
+  const chartRef = useRef(null);
 
   if (loading) return <div className="container"><Loading /></div>;
   if (error) return <div className="container"><ErrorBox error={error} /></div>;
@@ -73,13 +76,32 @@ export default function SessionTrend() {
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
             <h2 style={{ margin: 0 }}>Predicted load over the session</h2>
-            <span className="muted" style={{ fontSize: "0.85rem" }}>
-              Session accuracy: <strong>{(acc * 100).toFixed(0)}%</strong> ({correct}/
-              {session.length} windows)
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <span className="muted" style={{ fontSize: "0.85rem" }}>
+                Session accuracy: <strong>{(acc * 100).toFixed(0)}%</strong> ({correct}/
+                {session.length} windows)
+              </span>
+              <ExportMenu
+                pngRef={chartRef}
+                csvRows={session.map((w) => ({
+                  window_index: w.window_index,
+                  timestamp_s: w.timestamp_s,
+                  predicted_label: w.predicted_label,
+                  true_label: w.true_label_name,
+                  correct: w.predicted_index === w.true_label ? 1 : 0,
+                  p_low: w.probabilities?.Low,
+                  p_medium: w.probabilities?.Medium,
+                  p_high: w.probabilities?.High,
+                }))}
+                jsonData={session}
+                filename={stampFilename(["session", `subject-${activeSubject}`])}
+              />
+            </div>
           </div>
           <div style={{ height: 14 }} />
-          <TrendChart session={session} />
+          <div ref={chartRef}>
+            <TrendChart session={session} />
+          </div>
           <div className="note" style={{ marginTop: 16 }}>
             The shaded band marks a literature-informed sustained-engagement
             range (Yerkes–Dodson): too-low suggests under-engagement, too-high

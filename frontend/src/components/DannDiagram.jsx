@@ -1,5 +1,5 @@
 // The domain-adversarial setup. The fused embedding feeds two heads: a TASK head
-// (predict cognitive load — minimized) and a SUBJECT discriminator (predict who —
+// (predict cognitive load - minimized) and a SUBJECT discriminator (predict who -
 // adversarial). A gradient-reversal layer sits before the discriminator: identity
 // on the forward pass, ×(−λ) on the backward pass, so the same signal that trains
 // the discriminator pushes the ENCODER to erase subject identity.

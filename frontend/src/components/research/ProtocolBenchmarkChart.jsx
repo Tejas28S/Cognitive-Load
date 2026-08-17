@@ -10,17 +10,19 @@ import {
   YAxis,
 } from "recharts";
 import { COMPARE_COLORS } from "../../constants";
+import { usePrefersReducedMotion } from "../../lib/chartTheme";
 
-const AXIS = "#8a94a1";
-const GRID = "#eef0f3";
+const AXIS = "var(--ink-3)";
+const GRID = "var(--border)";
 
 // Two small panels that carry the protocol-taxonomy argument:
-//   (a) within-subject vs LOSO — the gap is small once per-subject normalized,
+//   (a) within-subject vs LOSO - the gap is small once per-subject normalized,
 //       so the honest LOSO number is not propped up by subject leakage.
-//   (b) 3-class vs binary (LOSO) — collapsing to binary lifts F1 ~+0.20, which
+//   (b) 3-class vs binary (LOSO) - collapsing to binary lifts F1 ~+0.20, which
 //       is what actually explains the distance to literature's 60-90%.
 // Both are macro F1 on the SAME RandomForest + features (only the protocol changes).
 export default function ProtocolBenchmarkChart({ protocol }) {
+  const reduced = usePrefersReducedMotion();
   if (!protocol) return null;
 
   const leakage = [
@@ -62,19 +64,21 @@ export default function ProtocolBenchmarkChart({ protocol }) {
         data={leakage}
         catKey="cond"
         series={series}
+        reduced={reduced}
       />
       <Panel
         title="Task difficulty (per-subject normalized)"
-        note="Binary lifts F1 ~+0.20 — the real gap to easier literature protocols."
+        note="Binary lifts F1 ~+0.20 - the real gap to easier literature protocols."
         data={difficulty}
         catKey="task"
         series={series}
+        reduced={reduced}
       />
     </div>
   );
 }
 
-function Panel({ title, note, data, catKey, series }) {
+function Panel({ title, note, data, catKey, series, reduced }) {
   return (
     <div>
       <div className="eyebrow" style={{ marginBottom: 4 }}>{title}</div>
@@ -89,9 +93,9 @@ function Panel({ title, note, data, catKey, series }) {
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis
               dataKey={catKey}
-              tick={{ fill: "#55606d", fontSize: 11.5 }}
+              tick={{ fill: "var(--ink-2)", fontSize: 11.5 }}
               tickLine={false}
-              axisLine={{ stroke: "#e4e7eb" }}
+              axisLine={{ stroke: "var(--border)" }}
               interval={0}
             />
             <YAxis
@@ -102,7 +106,7 @@ function Panel({ title, note, data, catKey, series }) {
               width={34}
             />
             <Tooltip
-              cursor={{ fill: "rgba(79,70,229,0.05)" }}
+              cursor={{ fill: "rgba(var(--accent-rgb), 0.06)" }}
               content={<Tip />}
             />
             <Legend
@@ -111,7 +115,7 @@ function Panel({ title, note, data, catKey, series }) {
               height={26}
               iconType="circle"
               iconSize={9}
-              wrapperStyle={{ fontSize: 12, color: "#47525f" }}
+              wrapperStyle={{ fontSize: 12, color: "var(--ink-2)" }}
             />
             {series.map((s) => (
               <Bar
@@ -121,7 +125,8 @@ function Panel({ title, note, data, catKey, series }) {
                 fill={s.color}
                 radius={[4, 4, 0, 0]}
                 maxBarSize={46}
-                isAnimationActive={false}
+                isAnimationActive={!reduced}
+                animationDuration={700}
               >
                 <LabelList
                   dataKey={s.key}

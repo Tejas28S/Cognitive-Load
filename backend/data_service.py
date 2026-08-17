@@ -7,11 +7,9 @@ import json
 import os
 from collections import defaultdict
 
-SERVING_DIR = os.environ.get(
-    "SERVING_DIR",
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "serving"),
+SERVING_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "serving"
 )
-FRONTEND_DIR = os.path.join(SERVING_DIR, "frontend_data")
 
 
 def _load(path):
@@ -39,10 +37,15 @@ class DataService:
         for k in self.subject_sessions:
             self.subject_sessions[k].sort(key=lambda x: x["window_index"])
 
+        self.frontend_dir = os.path.join(serving_dir, "frontend_data")
         self.frontend = {}
-        for name in ["confusion_matrices", "shap", "attention", "metrics", "research"]:
-            path = os.path.join(FRONTEND_DIR, f"{name}.json")
+        for name in ["confusion_matrices", "shap", "attention", "metrics", "research", "diagnostics"]:
+            path = os.path.join(self.frontend_dir, f"{name}.json")
             self.frontend[name] = _load(path) if os.path.exists(path) else {}
+
+        # The served model's architecture/ensemble card (for a live "model card").
+        cfg_path = os.path.join(serving_dir, "model_config.json")
+        self.config = _load(cfg_path) if os.path.exists(cfg_path) else {}
 
     # ── Demo sessions ─────────────────────────────────────────────────────
 
@@ -100,3 +103,12 @@ class DataService:
         """Consolidated research-result artifacts (DANN, protocol benchmark, HbR
         ablation, classical sweep, significance) for the /research narrative."""
         return self.frontend.get("research", {})
+
+    def diagnostics(self):
+        """Calibration/reliability diagnostics for the frozen served ensemble,
+        computed on the held-out demo windows (see export_diagnostics.py)."""
+        return self.frontend.get("diagnostics", {})
+
+    def model_config(self):
+        """The served model's architecture + ensemble card (model_config.json)."""
+        return self.config
