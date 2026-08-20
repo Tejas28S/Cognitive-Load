@@ -1,9 +1,9 @@
 import { CLASS_NAMES } from "../constants";
 
-// 3x3 confusion heatmap. Rows = true class, cols = predicted. Cell color is a
+// Confusion heatmap, sized to the served model (2x2 or 3x3). Rows = true class, cols = predicted. Cell color is a
 // single-hue sequential ramp (magnitude), intensity by row share so the
 // diagonal (correct) reads at a glance; the raw count is printed in each cell.
-export default function ConfusionMatrixChart({ matrix, title }) {
+export default function ConfusionMatrixChart({ matrix, title, classNames = CLASS_NAMES }) {
   if (!matrix) return null;
   const rowTotals = matrix.map((row) => row.reduce((a, b) => a + b, 0));
 
@@ -23,9 +23,9 @@ export default function ConfusionMatrixChart({ matrix, title }) {
     <div>
       {title && <h3 style={{ marginBottom: 12 }}>{title}</h3>}
       <div className="chart-wrap">
-        <div style={{ display: "inline-grid", gridTemplateColumns: "auto repeat(3, 56px)", gap: 4 }}>
+        <div style={{ display: "inline-grid", gridTemplateColumns: `auto repeat(${classNames.length}, 56px)`, gap: 4 }}>
           <div />
-          {CLASS_NAMES.map((c) => (
+          {classNames.map((c) => (
             <div key={c} style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: "var(--ink-muted)" }}>
               {c}
             </div>
@@ -33,7 +33,7 @@ export default function ConfusionMatrixChart({ matrix, title }) {
           {matrix.map((row, r) => (
             <RowFragment
               key={r}
-              label={CLASS_NAMES[r]}
+              label={classNames[r]}
               row={row}
               r={r}
               cellColor={cellColor}

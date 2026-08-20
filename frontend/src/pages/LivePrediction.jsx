@@ -6,12 +6,16 @@ import ConfidenceGauge from "../components/ConfidenceGauge";
 import ExportMenu from "../components/ExportMenu";
 import { getSubjects, predict } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
-import { CLASS_COLORS, CLASS_NAMES } from "../constants";
+import { useModelVersion, bundleLabel } from "../lib/modelVersion";
+import ModelProvenanceNote from "../components/ModelProvenanceNote";
+import { CLASS_COLORS } from "../constants";
 import { stampFilename } from "../lib/exportData";
 
-function PredictionResultPanel({ title, result, version }) {
-  if (!result) return <div className="card muted">No prediction run yet.</div>;
+function PredictionResultPanel({ title, result, version, classNames }) {
+  // Hook before the early return: this panel now flips between "no result" and
+  // "result" as the model switch changes, so a conditional hook would break.
   const resultRef = useRef(null);
+  if (!result) return <div className="card muted">No prediction run yet.</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -56,7 +60,11 @@ function PredictionResultPanel({ title, result, version }) {
             </strong>
           </span>
         </div>
-        <ProbabilityBars probabilities={result.probabilities} predicted={result.predicted_label} />
+        <ProbabilityBars
+          probabilities={result.probabilities}
+          predicted={result.predicted_label}
+          classNames={classNames || undefined}
+        />
         
         <div style={{ marginTop: 24 }}>
             <h4 style={{ margin: "0 0 8px 0" }}>Confidence & Uncertainty</h4>
@@ -82,38 +90,60 @@ function PredictionResultPanel({ title, result, version }) {
 }
 
 export default function LivePrediction() {
-  const { data: subjectsBin, loading: lBin, error: eBin } = useApi(() => getSubjects("binary"), []);
-  const { data: subjects3c, loading: l3c, error: e3c } = useApi(() => getSubjects("3class"), []);
+  // The switch picks the primary model. If a second bundle is also servable it
+  // is shown alongside, so the page works as a single-model demo or as the
+  // 2-class vs 3-class comparison depending on what the backend has.
+  const { version, bundles, available } = useModelVersion();
+  const activeBundle = bundles.find((b) => b.version === version) || null;
+  const otherBundle = available.find((b) => b.version !== version) || null;
+  const otherVersion = otherBundle?.version || null;
+
+  const { data: subjectsA, loading: lA, error: eA } = useApi(
+    () => getSubjects(version),
+    [version]
+  );
+  const { data: subjectsB, loading: lB, error: eB } = useApi(
+    () => (otherVersion ? getSubjects(otherVersion) : Promise.resolve(null)),
+    [otherVersion]
+  );
 
   const [subjectId, setSubjectId] = useState(null);
-  const [windowIdxBin, setWindowIdxBin] = useState(0);
-  const [windowIdx3c, setWindowIdx3c] = useState(0);
-  
-  const [resultBin, setResultBin] = useState(null);
-  const [result3c, setResult3c] = useState(null);
+  const [windowIdxA, setWindowIdxA] = useState(0);
+  const [windowIdxB, setWindowIdxB] = useState(0);
+
+  const [resultA, setResultA] = useState(null);
+  const [resultB, setResultB] = useState(null);
   const [busy, setBusy] = useState(false);
   const [predErr, setPredErr] = useState(null);
 
-  if (lBin || l3c) return <div className="container"><Loading /></div>;
-  if (eBin || e3c) return <div className="container"><ErrorBox error={eBin || e3c} /></div>;
+  if (lA || lB) return <div className="container"><Loading /></div>;
+  if (eA) return <div className="container"><ErrorBox error={eA} /></div>;
 
-  const currentBin = subjectsBin?.find((s) => s.subject_id === subjectId) || subjectsBin[0];
-  const current3c = subjects3c?.find((s) => s.subject_id === subjectId) || subjects3c[0];
-  
-  const activeSubject = currentBin?.subject_id;
-  const numWindowsBin = currentBin?.num_windows || 0;
-  const numWindows3c = current3c?.num_windows || 0;
+  const hasOther = Boolean(otherVersion) && Boolean(subjectsB) && !eB;
+
+  const currentA = subjectsA?.find((s) => s.subject_id === subjectId) || subjectsA[0];
+  const currentB = subjectsB?.find((s) => s.subject_id === subjectId) || subjectsB?.[0];
+
+  const activeSubject = currentA?.subject_id;
+  const numWindowsA = currentA?.num_windows || 0;
+  const numWindowsB = currentB?.num_windows || 0;
+
+  const labelA = bundleLabel(activeBundle) || version;
+  const labelB = bundleLabel(otherBundle) || otherVersion;
 
   const runPredict = async () => {
     setBusy(true);
     setPredErr(null);
     try {
-      const [r3c, rBin] = await Promise.all([
-        predict({ subject_id: activeSubject, window_index: windowIdx3c }, "3class"),
-        predict({ subject_id: activeSubject, window_index: windowIdxBin }, "binary")
+      const [rA, rB] = await Promise.all([
+        predict({ subject_id: activeSubject, window_index: windowIdxA }, version),
+        hasOther
+          ? predict({ subject_id: activeSubject, window_index: windowIdxB }, otherVersion)
+          : null,
       ]);
-      setResult3c({ ...r3c, subject_id: activeSubject, window_index: windowIdx3c });
-      setResultBin({ ...rBin, subject_id: activeSubject, window_index: windowIdxBin });
+      setResultA({ ...rA, subject_id: activeSubject, window_index: windowIdxA });
+      if (rB) setResultB({ ...rB, subject_id: activeSubject, window_index: windowIdxB });
+      else setResultB(null);
     } catch (e) {
       setPredErr(e?.message || "Prediction failed");
     } finally {
@@ -125,27 +155,40 @@ export default function LivePrediction() {
     <div className="container" style={{ maxWidth: 1200 }}>
       <div className="page-header">
         <div className="eyebrow eyebrow--accent" style={{ marginBottom: 8 }}>Live demo</div>
-        <h1>Live Prediction Comparison</h1>
+        <h1>{hasOther ? "Live Prediction Comparison" : "Live Prediction"}</h1>
         <p>
-          Compare the failing <strong>Legacy 3-Class Model</strong> directly against the new <strong>Binary (Low/High) Model</strong> using a real held-out test window from the same subject.
+          {hasOther ? (
+            <>
+              Run the <strong>{labelA} model</strong> against the <strong>{labelB} model</strong> on
+              a real held-out test window from the same subject. The model switch decides which one
+              leads.
+            </>
+          ) : (
+            <>
+              Run the <strong>{labelA} model</strong> on a real held-out test window. No second
+              bundle is available to compare against.
+            </>
+          )}
         </p>
       </div>
+
+      <ModelProvenanceNote style={{ marginBottom: 20 }} />
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="controls-row" style={{ flexWrap: "wrap" }}>
           <div>
-            <label className="field">Demo subject (Both Models)</label>
+            <label className="field">{hasOther ? "Demo subject (both models)" : "Demo subject"}</label>
             <select
               value={activeSubject}
               onChange={(e) => {
                 setSubjectId(Number(e.target.value));
-                setWindowIdxBin(0);
-                setWindowIdx3c(0);
-                setResultBin(null);
-                setResult3c(null);
+                setWindowIdxA(0);
+                setWindowIdxB(0);
+                setResultA(null);
+                setResultB(null);
               }}
             >
-              {subjectsBin.map((s) => (
+              {subjectsA.map((s) => (
                 <option key={s.subject_id} value={s.subject_id}>
                   Subject {s.subject_id}
                 </option>
@@ -153,36 +196,50 @@ export default function LivePrediction() {
             </select>
           </div>
           <div>
-            <label className="field">Window (3-Class Model)</label>
-            <select value={windowIdx3c} onChange={(e) => setWindowIdx3c(Number(e.target.value))}>
-              {Array.from({ length: numWindows3c }, (_, i) => (
+            <label className="field">{hasOther ? `Window (${labelA})` : "Window"}</label>
+            <select value={windowIdxA} onChange={(e) => setWindowIdxA(Number(e.target.value))}>
+              {Array.from({ length: numWindowsA }, (_, i) => (
                 <option key={i} value={i}>
-                  W{i} · truth: {current3c.true_label_names[i]}
+                  W{i} · truth: {currentA.true_label_names[i]}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="field">Window (Binary Model)</label>
-            <select value={windowIdxBin} onChange={(e) => setWindowIdxBin(Number(e.target.value))}>
-              {Array.from({ length: numWindowsBin }, (_, i) => (
-                <option key={i} value={i}>
-                  W{i} · truth: {currentBin.true_label_names[i]}
-                </option>
-              ))}
-            </select>
-          </div>
+          {hasOther && (
+            <div>
+              <label className="field">Window ({labelB})</label>
+              <select value={windowIdxB} onChange={(e) => setWindowIdxB(Number(e.target.value))}>
+                {Array.from({ length: numWindowsB }, (_, i) => (
+                  <option key={i} value={i}>
+                    W{i} · truth: {currentB.true_label_names[i]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <button className="btn btn-solid" onClick={runPredict} disabled={busy} style={{ alignSelf: "flex-end" }}>
-            {busy ? "Predicting Both…" : "Predict Both"}
+            {busy ? (hasOther ? "Predicting both…" : "Predicting…") : hasOther ? "Predict both" : "Predict"}
           </button>
         </div>
       </div>
 
       {predErr && <div className="error">{predErr}</div>}
 
-      <div className="grid grid-2">
-        <PredictionResultPanel title="Legacy 3-Class Prediction" result={result3c} version="3class" />
-        <PredictionResultPanel title="New Binary Prediction" result={resultBin} version="binary" />
+      <div className={hasOther ? "grid grid-2" : "grid"}>
+        <PredictionResultPanel
+          title={`${labelA} prediction`}
+          result={resultA}
+          version={version}
+          classNames={activeBundle?.class_names}
+        />
+        {hasOther && (
+          <PredictionResultPanel
+            title={`${labelB} prediction`}
+            result={resultB}
+            version={otherVersion}
+            classNames={otherBundle?.class_names}
+          />
+        )}
       </div>
     </div>
   );

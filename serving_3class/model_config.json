@@ -17,7 +17,7 @@
     "Medium",
     "High"
   ],
-  "frozen_checkpoint": "outputs/hybrid_best.pt",
+  "frozen_checkpoint": null,
   "served_model": "hybrid_rf_ensemble",
   "ensemble": {
     "type": "probability_average",
@@ -33,5 +33,18 @@
     "rf_estimators": 400,
     "rf_seed": 42,
     "rf_feature_order": "hstack([eeg_scaled, fnirs_scaled])"
+  },
+  "provenance": {
+    "kind": "retrained_stand_in",
+    "trained_by": "train_3class_from_demo.py",
+    "trained_on": "serving_3class/demo_samples.json (fixed-split test windows)",
+    "n_subjects": 6,
+    "validation_subjects": [
+      18,
+      24
+    ],
+    "heldout_subject_accuracy": 0.4133,
+    "heldout_subject_macro_f1": 0.3875,
+    "warning": "Not the research checkpoint behind RESULTS.md. Trained on the fixed-split test windows across 6 subjects because the original checkpoint and data/ are absent. Its accuracy is NOT comparable to the published 26-fold LOSO numbers."
   }
 }

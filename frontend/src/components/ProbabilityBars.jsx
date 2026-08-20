@@ -12,11 +12,11 @@ import { useChartColors, usePrefersReducedMotion } from "../lib/chartTheme";
 
 // Horizontal probability bars, one per class. The predicted (max) class is
 // drawn at full opacity; the others are dimmed so identity reads instantly.
-export default function ProbabilityBars({ probabilities, predicted }) {
+export default function ProbabilityBars({ probabilities, predicted, classNames = CLASS_NAMES }) {
   const c = useChartColors();
   const reduced = usePrefersReducedMotion();
   if (!probabilities) return null;
-  const data = CLASS_NAMES.map((name) => ({
+  const data = classNames.map((name) => ({
     name,
     prob: probabilities[name] ?? 0,
   }));

@@ -33,10 +33,23 @@ cognitive_load/
 │   ├── demo_samples.json     # real held-out test windows for playback
 │   ├── feature_schema.json, upload_template.csv  # CSV-upload schema + example
 │   └── frontend_data/*.json  # confusion matrices, SHAP, attention, metrics
+├── research/                 # leakage-audited experiment framework (binary-model work)
+│   ├── datamod.py            # preprocessing contract + LOSO folds + per-fold scalers
+│   ├── leakage.py            # leakage assertions; aborts a run rather than leak a score
+│   ├── archs.py              # model zoo: MLP + 1D-CNN encoders, fusion, DANN
+│   ├── train.py, metrics.py, plots.py, explain.py, experiment.py, campaign.py
+│   └── runctx.py             # the run archive (unique dirs, never overwritten)
+├── run_campaign.py           # the binary-model improvement campaign (CLI)
+├── outputs/runs/             # per-run archive: metrics, predictions, figures, models
 ├── backend/                  # FastAPI serving API (Part 3); upload_service.py = CSV upload
+│   └── runs_service.py       # read-only access to outputs/runs/ for the API
 ├── frontend/                 # React + Vite demo UI (Part 4)
 ├── test_data/synthetic/      # synthetic upload fixtures (CSVs gitignored; README + generator tracked)
 ├── RESULTS.md                # full results + methodology narrative
+├── RESULTS_BINARY_IMPROVEMENT.md    # measured results of the binary-model campaign
+├── explanation/              # project, API and methodology write-ups
+│   ├── PROJECT_RECORD.md     # the complete record: architecture, every experiment, all results
+│   └── *.pdf                 # every document as PDF (research/make_pdf.py)
 └── README.md
 ```
 
@@ -83,6 +96,53 @@ python generate_synthetic_test_csvs.py
 The full results and methodology narrative — including every rejected candidate
 and the decision-gate reasoning — lives in [`RESULTS.md`](RESULTS.md); the novel
 domain-adversarial contribution is written up in [`NOVELTY_DANN.md`](NOVELTY_DANN.md).
+
+## Improving the binary model (`research/`)
+
+A separate, additive framework for improving the **binary (Low vs High)** model
+without letting the evaluation flatter it. It does not touch `serving/`,
+`serving_3class/` or the legacy training scripts, so the existing demo is
+unaffected.
+
+```bash
+# Full staged campaign: baseline, then one controlled experiment axis per stage,
+# then 26-fold LOSO + a lockbox evaluation for the selected configuration.
+.venv/bin/python run_campaign.py --tag my-run
+
+# A single stage (e.g. the CNN/architecture comparison)
+.venv/bin/python run_campaign.py --stages S6
+
+# Smoke test: reduced cohort + epoch budget, exercises every code path in ~2 min
+.venv/bin/python run_campaign.py --quick --limit-subjects 7 --n-lockbox 3 --max-epochs 6
+```
+
+Key properties:
+
+- **Development / lockbox split.** 18 subjects drive every experiment and every
+  comparison; 8 subjects are held back and evaluated once, after the
+  configuration is frozen. The 26-fold LOSO number is also reported and labelled
+  as selection-informed.
+- **Leakage assertions run before every fold trains** — subject, trial, window,
+  duplicate-row, scaler-fit and held-out-subject checks. A failure aborts the run,
+  so a leaked score is never produced.
+- **Every run gets its own directory** under `outputs/runs/`, created before any
+  data is read. Runs are never overwritten and failed runs are never deleted.
+- **Metrics are computed from saved predictions**, so anything the UI shows can be
+  recomputed from that run's `predictions.csv` — `research.verify_run` does exactly
+  that and reports zero mismatches.
+
+Results are browsable at `/evaluation` and `/runs` in the app.
+
+- **Start here**: [`explanation/Cognitive_Load_Project_Report.pdf`](explanation/Cognitive_Load_Project_Report.pdf) —
+  an 18-page illustrated report with every figure, a table of contents and page
+  numbers. Every document in `explanation/` is also available as a PDF; rebuild
+  them all with `.venv/bin/python -m research.make_pdf --all` (needs the
+  `pandoc` binary and the `weasyprint` package).
+- Full detail in text: [`explanation/PROJECT_RECORD.md`](explanation/PROJECT_RECORD.md) —
+  architecture, protocol, leakage audit, all 42 experiments, final results and
+  limitations.
+- Methodology only: [`explanation/BINARY_MODEL_IMPROVEMENT.md`](explanation/BINARY_MODEL_IMPROVEMENT.md)
+- Machine-generated numbers: [`RESULTS_BINARY_IMPROVEMENT.md`](RESULTS_BINARY_IMPROVEMENT.md)
 
 ## Running the demo app
 

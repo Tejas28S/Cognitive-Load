@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import MetricsSummaryCard from "../components/MetricsSummaryCard";
 import { getMetrics } from "../api/client";
+import { useModelVersion } from "../lib/modelVersion";
+import ModelSwitch from "../components/ModelSwitch";
+import ModelProvenanceNote from "../components/ModelProvenanceNote";
 import { useApi, Loading, ErrorBox } from "../useApi";
-import { fmt, CLASS_COLORS, CLASS_NAMES } from "../constants";
+import { fmt, CLASS_COLORS } from "../constants";
 import SignalTrace from "../components/SignalTrace";
 import MetricStat from "../components/research/MetricStat";
 import GapDumbbell from "../components/GapDumbbell";
@@ -45,17 +48,35 @@ const TEASERS = [
 ];
 
 export default function Overview() {
+  const { version, active } = useModelVersion();
+
+  // Both bundles are fetched so the comparison below can stand on its own; the
+  // switch decides which one the headline numbers report.
   const { data: dataBin, loading: lBin, error: errBin } = useApi(() => getMetrics("binary"), []);
   const { data: data3c, loading: l3c, error: err3c } = useApi(() => getMetrics("3class"), []);
 
   const loading = lBin || l3c;
-  const error = errBin || err3c;
+  // Only the *selected* model failing should blank the page.
+  const error = version === "3class" ? err3c : errBin;
+  // The legacy 3-class bundle is optional: its weights are not always present.
+  // Without it the page drops the comparison rather than failing outright.
+  const has3c = Boolean(data3c) && !err3c;
 
-  const fx = data3c?.fixed_split?.hybrid || {};
   const loso = data3c?.loso?.hybrid || {};
   const ens = data3c?.loso?.ensemble_hybrid_rf || {};
-  
+
   const losoBin = dataBin?.loso?.ensemble_hybrid_rf || dataBin?.loso?.hybrid || {};
+
+  // Headline stats follow the switch.
+  const heroData = version === "3class" ? data3c : dataBin;
+  const heroLoso = heroData?.loso?.ensemble_hybrid_rf || heroData?.loso?.hybrid || {};
+  const heroClasses = active?.class_names?.length
+    ? active.class_names
+    : version === "3class"
+      ? ["Low", "Medium", "High"]
+      : ["Low", "High"];
+  const heroLabel = `${heroClasses.length}-class`;
+  const heroChance = `${Math.round(100 / heroClasses.length)}%`;
 
   return (
     <>
@@ -68,10 +89,15 @@ export default function Overview() {
           </h1>
           <p className="hero-lede" style={{ marginTop: 14 }}>
             A hybrid model fuses electrical (EEG) and hemodynamic (fNIRS) brain
-            signals to estimate cognitive load as Low, Medium, or High. The result
+            signals to estimate cognitive load as{" "}
+            {heroClasses.join(", ").replace(/, ([^,]*)$/, " or $1")}. The result
             that matters most is methodological: how the model performs on people
             it has never seen.
           </p>
+
+          <div style={{ marginTop: 20 }}>
+            <ModelSwitch variant="hero" />
+          </div>
 
           <div className="hero-actions">
             <Link to="/research" className="btn-lg btn-solid">Read the research</Link>
@@ -80,10 +106,10 @@ export default function Overview() {
 
           {!loading && !error && (
             <div className="hero-metrics">
-              <MetricStat onDark value={losoBin.f1_mean} format={pct}
-                label="Current binary macro F1 · LOSO" sub="Hybrid, 26 subjects held out" />
-              <MetricStat onDark value={losoBin.acc_mean} format={pct}
-                label="Accuracy · LOSO" sub="Binary · chance ≈ 50%" />
+              <MetricStat onDark value={heroLoso.f1_mean} format={pct}
+                label={`Macro F1 · LOSO · ${heroLabel}`} sub="Hybrid, 26 subjects held out" />
+              <MetricStat onDark value={heroLoso.acc_mean} format={pct}
+                label="Accuracy · LOSO" sub={`${heroLabel} · chance ≈ ${heroChance}`} />
               <MetricStat onDark value={26} format={(n) => Math.round(n).toString()}
                 label="Subjects" sub="TU Berlin / Shin n-back" />
             </div>
@@ -97,13 +123,15 @@ export default function Overview() {
         {error && <ErrorBox error={error} />}
         {!loading && !error && (
           <div className="stack-lg">
+            <ModelProvenanceNote />
             {/* Two numbers, read together */}
             <Reveal as="section">
               <div className="eyebrow eyebrow--accent" style={{ marginBottom: 8 }}>
                 Performance Comparison
               </div>
-              <h2>Binary vs 3-Class Models (LOSO Evaluation)</h2>
-              <div className="grid grid-2" style={{ marginTop: 16 }}>
+              <h2>{has3c ? "Binary vs 3-Class Models (LOSO Evaluation)" : "Binary Model (LOSO Evaluation)"}</h2>
+              <div className={has3c ? "grid grid-2" : "grid"} style={{ marginTop: 16 }}>
+                {has3c && (
                 <div className="card">
                   <h3>Legacy 3-Class (Baseline)</h3>
                   <p className="card-sub">
@@ -115,6 +143,7 @@ export default function Overview() {
                     <MetricsSummaryCard label="AUC" value={fmt(loso.auc_mean, 3)} sub="26-fold mean" />
                   </div>
                 </div>
+                )}
                 <div className="card" style={{ borderColor: "var(--accent)" }}>
                   <h3 style={{ color: "var(--accent)" }}>Binary Classification (Improved)</h3>
                   <p className="card-sub">
@@ -128,6 +157,7 @@ export default function Overview() {
                   </div>
                 </div>
               </div>
+              {has3c && (
               <div className="card" style={{ marginTop: 18 }}>
                 <h3 style={{ marginTop: 0 }}>Accuracy Jump: 3-Class vs Binary</h3>
                 <p className="card-sub">
@@ -146,11 +176,21 @@ export default function Overview() {
                   ]}
                 />
               </div>
+              )}
+              {!has3c && (
+                <div className="note" style={{ marginTop: 16 }}>
+                  The legacy 3-class comparison is unavailable — <code>serving_3class/</code>
+                  {" "}is missing <code>model_weights.pt</code> and <code>feature_scaler.pkl</code>.
+                  Add them and this section returns automatically.
+                </div>
+              )}
+              {has3c && (
               <div className="note info" style={{ marginTop: 16 }}>
                 The gap between the panels shows the dramatic improvement. The grey dot represents the failing <strong>legacy 3-class model</strong> (~40-44%), while the <span style={{ color: "var(--accent)" }}>blue dot</span> represents the new <strong>binary classification model</strong> (~65%) operating on the augmented dataset.
               </div>
+              )}
               <div style={{ display: "flex", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
-                {CLASS_NAMES.map((c) => (
+                {heroClasses.map((c) => (
                   <span key={c} className="pill">
                     <span className="swatch" style={{ background: CLASS_COLORS[c] }} />
                     {c} load

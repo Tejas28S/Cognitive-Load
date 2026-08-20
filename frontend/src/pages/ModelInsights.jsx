@@ -8,17 +8,19 @@ import ShapPerClass from "../components/research/ShapPerClass";
 import PerSubjectBars from "../components/research/PerSubjectBars";
 import { getConfusion, getShap, getAttention, getMetrics, getDiagnostics } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
+import { useModelVersion } from "../lib/modelVersion";
+import ModelProvenanceNote from "../components/ModelProvenanceNote";
 import { MODALITY_COLORS, fmt } from "../constants";
 
-const loadAll = () =>
+const loadAll = (version) =>
   Promise.all([
-    getConfusion("hybrid"),
-    getConfusion("eeg"),
-    getConfusion("fnirs"),
-    getShap(),
-    getAttention(),
-    getMetrics(),
-    getDiagnostics().catch(() => null),
+    getConfusion("hybrid", version),
+    getConfusion("eeg", version),
+    getConfusion("fnirs", version),
+    getShap(version),
+    getAttention(version),
+    getMetrics(version),
+    getDiagnostics(version).catch(() => null),
   ]).then(([hybrid, eeg, fnirs, shap, attention, metrics, diagnostics]) => ({
     hybrid,
     eeg,
@@ -37,7 +39,8 @@ const LOSO_ROWS = [
 ];
 
 export default function ModelInsights() {
-  const { data, loading, error } = useApi(loadAll);
+  const { version, classNames } = useModelVersion();
+  const { data, loading, error } = useApi(() => loadAll(version), [version]);
   if (loading) return <div className="container"><Loading /></div>;
   if (error) return <div className="container"><ErrorBox error={error} /></div>;
 
@@ -51,6 +54,7 @@ export default function ModelInsights() {
 
   return (
     <div className="container">
+      <ModelProvenanceNote style={{ marginBottom: 18 }} />
       <div className="page-header">
         <div className="eyebrow eyebrow--accent" style={{ marginBottom: 8 }}>Quantitative</div>
         <h1>Model Insights</h1>
@@ -72,7 +76,7 @@ export default function ModelInsights() {
             <LosoConfigChart loso={loso} rows={chartRows} />
           </Figure>
           <Figure num="2" title="Per-class recall - High load is the hardest across every config." source="metrics.json">
-            <PerClassRecall loso={loso} rows={LOSO_ROWS} />
+            <PerClassRecall loso={loso} rows={LOSO_ROWS} classNames={classNames || undefined} />
           </Figure>
         </div>
         <div className="chart-wrap">
@@ -121,9 +125,9 @@ export default function ModelInsights() {
           extremes.
         </p>
         <div className="grid grid-3">
-          <ConfusionMatrixChart matrix={hybrid.matrix} title="Hybrid (EEG + fNIRS)" />
-          <ConfusionMatrixChart matrix={eeg.matrix} title="EEG only" />
-          <ConfusionMatrixChart matrix={fnirs.matrix} title="fNIRS only" />
+          <ConfusionMatrixChart matrix={hybrid.matrix} title="Hybrid (EEG + fNIRS)" classNames={hybrid.labels || classNames || undefined} />
+          <ConfusionMatrixChart matrix={eeg.matrix} title="EEG only" classNames={eeg.labels || classNames || undefined} />
+          <ConfusionMatrixChart matrix={fnirs.matrix} title="fNIRS only" classNames={fnirs.labels || classNames || undefined} />
         </div>
       </div>
 
@@ -196,7 +200,7 @@ export default function ModelInsights() {
               <div className="stat-sub" style={{ fontWeight: 600, color: "var(--ink-2)", marginBottom: 10 }}>
                 Aggregate confusion · demo windows
               </div>
-              <ConfusionMatrixChart matrix={diagnostics.demo_confusion?.matrix} />
+              <ConfusionMatrixChart matrix={diagnostics.demo_confusion?.matrix} classNames={classNames || undefined} />
               <div className="note info" style={{ marginTop: 14, fontSize: "0.82rem" }}>
                 Overall demo accuracy {(diagnostics.overall?.accuracy * 100).toFixed(1)}% ·
                 macro F1 {fmt(diagnostics.overall?.macro_f1, 3)}. This is the

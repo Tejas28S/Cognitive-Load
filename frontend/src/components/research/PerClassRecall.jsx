@@ -15,14 +15,17 @@ import { useChartColors, usePrefersReducedMotion } from "../../lib/chartTheme";
 // Per-class recall [Low, Medium, High] across LOSO configs. Surfaces the "High
 // load is hardest" story hidden inside the recall_mean arrays: bars grouped by
 // class, one series per config. Data: metrics.loso[*].recall_mean.
-export default function PerClassRecall({ loso, rows, height = 300 }) {
+export default function PerClassRecall({ loso, rows, height = 300, classNames = CLASS_NAMES }) {
   const c = useChartColors();
   const reduced = usePrefersReducedMotion();
   if (!loso) return null;
 
-  const configs = rows.filter((r) => loso[r.key]?.recall_mean);
+  const configs = rows.filter(
+    (r) => loso[r.key]?.recall_mean?.length === classNames.length
+  );
+  if (!configs.length) return null;
   // One row per class, one key per config.
-  const data = CLASS_NAMES.map((cls, ci) => {
+  const data = classNames.map((cls, ci) => {
     const row = { cls };
     configs.forEach((r) => {
       row[r.key] = loso[r.key].recall_mean[ci];

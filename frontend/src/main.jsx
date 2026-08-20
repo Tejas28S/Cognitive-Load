@@ -14,15 +14,18 @@ import '@fontsource/ibm-plex-mono/500.css'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './lib/theme'
+import { ModelVersionProvider } from './lib/modelVersion'
 import { ToastProvider } from './lib/toast'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <ModelVersionProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ModelVersionProvider>
       </ToastProvider>
     </ThemeProvider>
   </StrictMode>,

@@ -25,6 +25,9 @@ SERVING_DIR = os.environ.get(
 
 class UploadService:
     def __init__(self, serving_dir=SERVING_DIR):
+        # Kept so callers can locate sibling artifacts in this bundle (the
+        # /api/predict/upload/template download reads upload_template.csv here).
+        self.serving_dir = serving_dir
         with open(os.path.join(serving_dir, "feature_schema.json"), encoding="utf-8") as f:
             self.schema = json.load(f)
         self.eeg_cols = self.schema["eeg_columns"]

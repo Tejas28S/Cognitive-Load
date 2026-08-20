@@ -7,8 +7,12 @@ import SessionTrend from "./pages/SessionTrend";
 import ModelInsights from "./pages/ModelInsights";
 import Methodology from "./pages/Methodology";
 import UploadData from "./pages/UploadData";
+import EvaluationMetrics from "./pages/EvaluationMetrics";
+import RunHistory from "./pages/RunHistory";
 import { BrandMark } from "./components/SignalTrace";
 import ThemeToggle from "./components/ThemeToggle";
+import ModelSwitch from "./components/ModelSwitch";
+import { useModelVersion } from "./lib/modelVersion";
 import CommandPalette from "./components/CommandPalette";
 import ScrollProgress from "./components/ScrollProgress";
 
@@ -30,6 +34,8 @@ const groups = [
   ],
   [
     { to: "/insights", label: "Insights" },
+    { to: "/evaluation", label: "Evaluation" },
+    { to: "/runs", label: "Runs" },
     { to: "/methodology", label: "Methodology" },
   ],
 ];
@@ -37,6 +43,8 @@ const groups = [
 export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const location = useLocation();
+  const { active } = useModelVersion();
+  const nClasses = active?.num_classes || active?.class_names?.length;
   return (
     <div className="app">
       <nav className="nav">
@@ -58,6 +66,7 @@ export default function App() {
             ))}
           </div>
           <div className="nav-tools">
+            <ModelSwitch variant="compact" />
             <button
               type="button"
               className="cmdk-hint-btn"
@@ -84,6 +93,8 @@ export default function App() {
           <Route path="/session" element={<SessionTrend />} />
           <Route path="/upload" element={<UploadData />} />
           <Route path="/insights" element={<ModelInsights />} />
+          <Route path="/evaluation" element={<EvaluationMetrics />} />
+          <Route path="/runs" element={<RunHistory />} />
           <Route path="/methodology" element={<Methodology />} />
         </Routes>
       </main>
@@ -91,8 +102,9 @@ export default function App() {
       <footer className="site-footer">
         <div className="foot-inner">
           <span>
-            Cognitive load from EEG + fNIRS · TU Berlin / Shin n-back · 3-class,
-            leave-one-subject-out
+            Cognitive load from EEG + fNIRS · TU Berlin / Shin n-back ·{" "}
+            {nClasses ? `${nClasses}-class` : "leave-one-subject-out"}
+            {nClasses ? ", leave-one-subject-out" : ""}
           </span>
           <span className="mono">
             served model: hybrid_rf_ensemble · every value traces to a committed

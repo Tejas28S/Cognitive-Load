@@ -16,6 +16,12 @@ outputs/
 !serving/
 !serving/**
 
+# Same for the legacy 3-class bundle: the app's Overview and Live Prediction
+# pages compare binary against it, so its weights + scaler must be committed
+# too — the JSON artifacts alone are not enough to load it.
+!serving_3class/
+!serving_3class/**
+
 # Frontend build tooling
 node_modules/
 frontend/dist/
@@ -32,3 +38,10 @@ serving_936/
 # (keeps ~5 MB of generated data out of git, per the data/ + outputs/ convention).
 # The generator and the folder README (test plan) ARE committed.
 test_data/synthetic/*.csv
+
+# macOS junk
+.DS_Store
+
+# The raw + extracted TU Berlin data (9.3 GB). Referenced from data/ by symlink;
+# never committed. See explanation/PROJECT_RECORD.md for how to point data/ at it.
+ZDATASET/

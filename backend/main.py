@@ -12,6 +12,7 @@ Run:
 """
 
 import io
+import json
 
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
@@ -51,20 +52,39 @@ app.add_middleware(
 
 # Load the model + data once at startup (not per-request).
 import os
-model_services = {
-    "binary": ModelService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving")),
-    "3class": ModelService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving_3class"))
-}
-data_services = {
-    "binary": DataService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving")),
-    "3class": DataService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving_3class"))
-}
-upload_services = {
-    "binary": UploadService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving")),
-    "3class": UploadService(serving_dir=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "serving_3class"))
-}
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_BUNDLES = {"binary": "serving", "3class": "serving_3class"}
+
+model_services, data_services, upload_services = {}, {}, {}
+bundle_errors = {}
+
+# A bundle is only served if it is complete. serving_3class/ ships its JSON
+# artifacts but not model_weights.pt / feature_scaler.pkl (gitignored), so a
+# hard load here would take the whole API down with it.
+for _version, _dirname in _BUNDLES.items():
+    _dir = os.path.join(_ROOT, _dirname)
+    try:
+        model_services[_version] = ModelService(serving_dir=_dir)
+        data_services[_version] = DataService(serving_dir=_dir)
+        upload_services[_version] = UploadService(serving_dir=_dir)
+    except Exception as exc:
+        bundle_errors[_version] = f"{type(exc).__name__}: {exc}"
+        model_services.pop(_version, None)
+        data_services.pop(_version, None)
+        upload_services.pop(_version, None)
+        print(f"[startup] '{_version}' bundle unavailable ({_dirname}/): {exc}")
+
+if not model_services:
+    raise RuntimeError(f"No serving bundle could be loaded: {bundle_errors}")
+
 
 def get_services(version: str):
+    if version in bundle_errors:
+        raise HTTPException(
+            status_code=503,
+            detail=f"The '{version}' model bundle is not available: {bundle_errors[version]}",
+        )
     if version not in model_services:
         raise HTTPException(status_code=400, detail="Invalid version. Use 'binary' or '3class'")
     return model_services[version], data_services[version], upload_services[version]
@@ -75,6 +95,62 @@ def get_services(version: str):
 @app.get("/api/health", response_model=Health)
 def health():
     return {"status": "ok"}
+
+
+# ── Which model bundles can actually be served ──────────────────────────────
+
+@app.get("/api/bundles")
+def bundles():
+    """Describe every known bundle and whether it can be served.
+
+    The UI's model switch reads this so it can offer 2-class and 3-class as real
+    options, label each with its true class names, and disable (with a reason)
+    any bundle whose artifacts are missing — rather than letting the user pick a
+    mode that only fails at request time.
+    """
+    out = []
+    for version, dirname in _BUNDLES.items():
+        service = model_services.get(version)
+        if service is not None:
+            names = list(service.class_names)
+            out.append({
+                "version": version,
+                "available": True,
+                "num_classes": len(names),
+                "class_names": names,
+                "reason": None,
+                # Present when a bundle is not the original frozen research
+                # checkpoint; the UI labels those so their numbers are never
+                # mistaken for the published ones.
+                "provenance": service.cfg.get("provenance"),
+            })
+            continue
+
+        # The config JSON usually survives even when the weights do not, so the
+        # switch can still name the option it is greying out.
+        names, n_classes = [], None
+        cfg_path = os.path.join(_ROOT, dirname, "model_config.json")
+        if os.path.exists(cfg_path):
+            try:
+                with open(cfg_path, encoding="utf-8") as f:
+                    cfg = json.load(f)
+                names = list(cfg.get("class_names", []))
+                n_classes = cfg.get("num_classes") or (len(names) or None)
+            except (OSError, ValueError):
+                pass
+        out.append({
+            "version": version,
+            "available": False,
+            "num_classes": n_classes,
+            "class_names": names,
+            "reason": bundle_errors.get(version, "bundle not loaded"),
+            "provenance": None,
+        })
+
+    return {
+        "bundles": out,
+        "default": next((b["version"] for b in out if b["available"]), None),
+    }
 
 
 # ── Model metrics / confusion matrices ──────────────────────────────────────
@@ -359,3 +435,188 @@ async def predict_upload_mat(
         "predictions": rows,
     }
 
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Evaluation runs — the experiment archive under outputs/runs/
+#
+#  These endpoints serve artifacts a training run wrote to disk. Nothing is
+#  computed here: every metric, matrix, curve and figure below was produced by
+#  research/ during that run and can be recomputed from its predictions.csv.
+#  Each run is self-describing (its dataset_info.json carries class names and
+#  classification mode), so binary and 3-class runs are handled by the same
+#  code path with no per-model branching.
+# ════════════════════════════════════════════════════════════════════════════
+
+from fastapi.responses import Response
+
+from runs_service import ArtifactNotFound, RunNotFound, RunsService
+
+runs_service = RunsService(repo_root=_ROOT)
+
+
+def _run_or_404(run_id):
+    try:
+        return runs_service.run_dir(run_id)
+    except RunNotFound:
+        raise HTTPException(status_code=404, detail=f"No run '{run_id}' in the archive")
+
+
+def _artifact_or_404(run_id, relpath, what):
+    _run_or_404(run_id)
+    data = runs_service.try_read(run_id, relpath)
+    if data is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Run '{run_id}' has no {what} (expected {relpath}). "
+                   "It may have failed before that stage.",
+        )
+    return data
+
+
+@app.get("/api/runs")
+def list_runs(
+    mode: str = Query(None, description="filter by classification_mode, e.g. binary"),
+    status: str = Query(None, description="filter by run status"),
+    limit: int = Query(100, ge=1, le=500),
+):
+    """Run history. Newest first, generated by scanning the archive."""
+    rows = runs_service.list_runs()
+    if mode:
+        rows = [r for r in rows if r.get("classification_mode") == mode]
+    if status:
+        rows = [r for r in rows if r.get("status") == status]
+    return {
+        "runs": rows[:limit],
+        "total": len(rows),
+        "runs_root": runs_service.runs_root,
+        "modes": sorted({r.get("classification_mode") for r in runs_service.list_runs()
+                         if r.get("classification_mode")}),
+    }
+
+
+@app.get("/api/runs/{run_id}")
+def get_run(run_id: str):
+    _run_or_404(run_id)
+    return runs_service.get_run(run_id)
+
+
+@app.get("/api/runs/{run_id}/metrics")
+def run_metrics(run_id: str):
+    """Pooled held-out metrics plus the plain-English metric explanations."""
+    metrics = _artifact_or_404(run_id, "metrics/metrics.json", "metrics")
+    return {
+        "metrics": metrics,
+        "explanations": runs_service.try_read(
+            run_id, "metrics/metric_explanations.json", {}),
+        "loso": runs_service.try_read(run_id, "metrics/loso_metrics.json"),
+        "per_class": runs_service.try_read(run_id, "metrics/per_class_metrics.json"),
+    }
+
+
+@app.get("/api/runs/{run_id}/confusion-matrix")
+def run_confusion_matrix(run_id: str):
+    return _artifact_or_404(
+        run_id, "confusion_matrix/confusion_matrix.json", "confusion matrix")
+
+
+@app.get("/api/runs/{run_id}/curves")
+def run_curves(run_id: str):
+    """ROC and precision-recall curve points for the held-out predictions."""
+    return _artifact_or_404(run_id, "curves/curves.json", "ROC/PR curves")
+
+
+@app.get("/api/runs/{run_id}/training-history")
+def run_training_history(run_id: str):
+    return _artifact_or_404(
+        run_id, "curves/training_history.json", "training history")
+
+
+@app.get("/api/runs/{run_id}/per-subject")
+def run_per_subject(run_id: str):
+    """Per-subject held-out performance, read from the LOSO metrics artifact."""
+    loso = _artifact_or_404(run_id, "metrics/loso_metrics.json", "LOSO metrics")
+    summary = runs_service.try_read(run_id, "run_summary.json", {}) or {}
+    exp_id = (summary.get("model") or {}).get("selected_experiment")
+    rows = runs_service.try_read(run_id, "experiments/FINAL_loso26/per_subject_metrics.json")
+    return {
+        "per_subject": rows or [],
+        "fold_aggregate": loso.get("fold_aggregate"),
+        "protocol": loso.get("protocol"),
+        "lockbox": loso.get("lockbox"),
+        "selected_experiment": exp_id,
+    }
+
+
+@app.get("/api/runs/{run_id}/feature-importance")
+def run_feature_importance(run_id: str):
+    data = _artifact_or_404(
+        run_id, "feature_importance/shap_values.json", "feature importance")
+    return data
+
+
+@app.get("/api/runs/{run_id}/representations")
+def run_representations(run_id: str):
+    return _artifact_or_404(
+        run_id, "representations/representations.json", "t-SNE representations")
+
+
+@app.get("/api/runs/{run_id}/experiments")
+def run_experiments(run_id: str):
+    """The experiment leaderboard for this run, built from its own records."""
+    _run_or_404(run_id)
+    return runs_service.experiments(run_id)
+
+
+@app.get("/api/runs/{run_id}/experiments/{exp_id}")
+def run_experiment_detail(run_id: str, exp_id: str):
+    _run_or_404(run_id)
+    try:
+        return runs_service.experiment_detail(run_id, exp_id)
+    except ArtifactNotFound:
+        raise HTTPException(
+            status_code=404, detail=f"Run '{run_id}' has no experiment '{exp_id}'")
+
+
+@app.get("/api/runs/{run_id}/predictions")
+def run_predictions(run_id: str, limit: int = Query(500, ge=1, le=5000),
+                    offset: int = Query(0, ge=0), subject: int = Query(None)):
+    """Raw saved predictions, so any metric on the page can be reproduced."""
+    _run_or_404(run_id)
+    try:
+        return runs_service.predictions(run_id, limit=limit, offset=offset,
+                                        subject=subject)
+    except ArtifactNotFound:
+        raise HTTPException(status_code=404,
+                            detail=f"Run '{run_id}' saved no predictions")
+
+
+@app.get("/api/runs/{run_id}/summary")
+def run_summary(run_id: str):
+    return _artifact_or_404(run_id, "run_summary.json", "summary")
+
+
+@app.get("/api/runs/{run_id}/figure")
+def run_figure(run_id: str, path: str = Query(..., description="e.g. curves/roc_curve.png")):
+    """Serve a PNG this run produced. Path-guarded to the run's own directory."""
+    _run_or_404(run_id)
+    if not path.lower().endswith(".png"):
+        raise HTTPException(status_code=400, detail="Only .png artifacts are served")
+    try:
+        return FileResponse(runs_service.artifact_path(run_id, path),
+                            media_type="image/png")
+    except ArtifactNotFound:
+        raise HTTPException(status_code=404,
+                            detail=f"Run '{run_id}' has no figure '{path}'")
+
+
+@app.get("/api/runs/{run_id}/report")
+def run_report(run_id: str):
+    """The run's markdown summary, as text."""
+    _run_or_404(run_id)
+    try:
+        with open(runs_service.artifact_path(run_id, "run_summary.md"),
+                  encoding="utf-8") as fh:
+            return Response(content=fh.read(), media_type="text/markdown")
+    except ArtifactNotFound:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' has no report")

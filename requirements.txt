@@ -9,3 +9,6 @@ tqdm>=4.65.0
 h5py>=3.8.0
 shap>=0.52.0
 xgboost>=2.0.0  # classical_sweep.py only (not needed to serve the demo)
+
+# PDF generation (research/make_pdf.py); also needs the `pandoc` binary
+weasyprint

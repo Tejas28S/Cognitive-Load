@@ -11,6 +11,8 @@ const PAGES = [
   { to: "/session", label: "Session Trend", hint: "Play back a subject's trials" },
   { to: "/upload", label: "Upload Data", hint: "Predict on a features CSV" },
   { to: "/insights", label: "Model Insights", hint: "Confusion, SHAP, attention" },
+  { to: "/evaluation", label: "Evaluation Metrics", hint: "Full metrics for one training run" },
+  { to: "/runs", label: "Run History", hint: "Every run in the archive" },
   { to: "/methodology", label: "Methodology", hint: "Why LOSO ≠ fixed split" },
 ];
 

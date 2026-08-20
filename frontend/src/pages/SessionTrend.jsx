@@ -3,10 +3,12 @@ import TrendChart from "../components/TrendChart";
 import ExportMenu from "../components/ExportMenu";
 import { getSubjects, predictSession } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
+import { useModelVersion } from "../lib/modelVersion";
 import { stampFilename } from "../lib/exportData";
 
 export default function SessionTrend() {
-  const { data: subjects, loading, error } = useApi(getSubjects);
+  const { version, classNames } = useModelVersion();
+  const { data: subjects, loading, error } = useApi(() => getSubjects(version), [version]);
   const [subjectId, setSubjectId] = useState(null);
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -23,7 +25,7 @@ export default function SessionTrend() {
     setBusy(true);
     setSErr(null);
     try {
-      const r = await predictSession(activeSubject, 0);
+      const r = await predictSession(activeSubject, 0, version);
       setSession(r);
     } catch (e) {
       setSErr(e?.message || "Session prediction failed");
@@ -100,7 +102,7 @@ export default function SessionTrend() {
           </div>
           <div style={{ height: 14 }} />
           <div ref={chartRef}>
-            <TrendChart session={session} />
+            <TrendChart classNames={classNames || undefined} session={session} />
           </div>
           <div className="note" style={{ marginTop: 16 }}>
             The shaded band marks a literature-informed sustained-engagement

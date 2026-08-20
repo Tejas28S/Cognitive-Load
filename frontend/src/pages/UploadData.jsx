@@ -3,12 +3,13 @@ import { uploadCsv, uploadMat, uploadTemplateUrl } from "../api/client";
 import ExportMenu from "../components/ExportMenu";
 import { stampFilename } from "../lib/exportData";
 import { CLASS_COLORS, CLASS_NAMES } from "../constants";
+import { useModelVersion } from "../lib/modelVersion";
 
 // Compact 3-segment probability bar for a table row.
-function MiniProb({ probabilities }) {
+function MiniProb({ probabilities, classNames = CLASS_NAMES }) {
   return (
     <div style={{ display: "flex", height: 14, borderRadius: 4, overflow: "hidden", minWidth: 120 }}>
-      {CLASS_NAMES.map((c) => (
+      {classNames.map((c) => (
         <div
           key={c}
           title={`${c}: ${((probabilities[c] ?? 0) * 100).toFixed(1)}%`}
@@ -19,10 +20,10 @@ function MiniProb({ probabilities }) {
   );
 }
 
-function ClassDistribution({ dist, total }) {
+function ClassDistribution({ dist, total, classNames = CLASS_NAMES }) {
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      {CLASS_NAMES.map((c) => {
+      {classNames.map((c) => {
         const n = dist[c] ?? 0;
         const pct = total ? (n / total) * 100 : 0;
         return (
@@ -42,6 +43,7 @@ function ClassDistribution({ dist, total }) {
 }
 
 export default function UploadData() {
+  const { version, classNames } = useModelVersion();
   const [file, setFile] = useState(null);
   
   // New state for raw mat uploads
@@ -62,7 +64,7 @@ export default function UploadData() {
     setError(null);
     setResult(null);
     try {
-      const data = await uploadCsv(file);
+      const data = await uploadCsv(file, version);
       setResult(data);
     } catch (e) {
       const detail = e?.response?.data?.detail;
@@ -86,7 +88,7 @@ export default function UploadData() {
     setError(null);
     setResult(null);
     try {
-      const data = await uploadMat(eegFile, nirsFile);
+      const data = await uploadMat(eegFile, nirsFile, version);
       setResult(data);
     } catch (e) {
       const detail = e?.response?.data?.detail;
@@ -199,7 +201,7 @@ export default function UploadData() {
             <button className="btn btn-solid" disabled={!file || busy} onClick={onUploadCsv}>
               {busy ? "Processing CSV…" : "Upload & Predict"}
             </button>
-            <a href={uploadTemplateUrl()} className="btn btn-outline" download="upload_template.csv" style={{ fontSize: "0.9rem" }}>
+            <a href={uploadTemplateUrl(version)} className="btn btn-outline" download="upload_template.csv" style={{ fontSize: "0.9rem" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               Download CSV Template
             </a>
@@ -344,6 +346,7 @@ export default function UploadData() {
                   Predicted class distribution
                 </div>
                 <ClassDistribution
+                  classNames={classNames || undefined}
                   dist={result.summary.class_distribution}
                   total={result.summary.rows_processed}
                 />
@@ -393,7 +396,7 @@ export default function UploadData() {
                         </span>
                       </td>
                       <td style={{ textAlign: "left" }}>
-                        <MiniProb probabilities={r.probabilities} />
+                        <MiniProb probabilities={r.probabilities} classNames={classNames || undefined} />
                       </td>
                       <td
                         style={{

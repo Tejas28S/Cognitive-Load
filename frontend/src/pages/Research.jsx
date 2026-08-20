@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useApi, Loading, ErrorBox } from "../useApi";
+import { useModelVersion } from "../lib/modelVersion";
 import { getResearch, getMetrics, getShap, getAttention } from "../api/client";
 import { COMPARE_COLORS } from "../constants";
 import SignalTrace from "../components/SignalTrace";
@@ -36,15 +37,18 @@ const f3 = (x) => (x == null ? "-" : Number(x).toFixed(3));
 const signed = (x, d = 4) => (x == null ? "-" : `${x >= 0 ? "+" : ""}${Number(x).toFixed(d)}`);
 
 export default function Research() {
+  const { version } = useModelVersion();
   const { data, loading, error } = useApi(async () => {
     const [research, metrics, shap, attention] = await Promise.all([
-      getResearch(),
-      getMetrics(),
-      getShap(),
-      getAttention(),
+      // research.json is a project-level dossier, only packaged in the binary
+      // bundle; fall back so selecting 3-class does not blank this page.
+      getResearch(version).catch(() => getResearch("binary")),
+      getMetrics(version),
+      getShap(version),
+      getAttention(version),
     ]);
     return { research, metrics, shap, attention };
-  }, []);
+  }, [version]);
 
   return (
     <>

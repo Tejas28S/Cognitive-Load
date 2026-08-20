@@ -6,6 +6,8 @@ const baseURL = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 const api = axios.create({ baseURL, timeout: 30000 });
 
 export const getHealth = () => api.get("/api/health").then((r) => r.data);
+// Which model bundles the backend can actually serve, with class names + reasons.
+export const getBundles = () => api.get("/api/bundles").then((r) => r.data);
 export const getMetrics = (version = "binary") => api.get("/api/model/metrics", { params: { version } }).then((r) => r.data);
 export const getConfusion = (model, version = "binary") =>
   api.get("/api/model/confusion-matrix", { params: { model, version } }).then((r) => r.data);
@@ -55,5 +57,33 @@ export const uploadMat = (eegFile, nirsFile, version = "binary") => {
 
 // Direct URL for the example-CSV download link.
 export const uploadTemplateUrl = (version = "binary") => `${baseURL}/api/predict/upload/template?version=${version}`;
+
+// ── Evaluation runs ─────────────────────────────────────────────────────────
+// Every one of these returns an artifact a training run wrote to disk under
+// outputs/runs/<run_id>/. The run is self-describing (it carries its own class
+// names and classification mode), so nothing here assumes binary or 3-class.
+
+export const getRuns = (params = {}) => api.get("/api/runs", { params }).then((r) => r.data);
+export const getRun = (runId) => api.get(`/api/runs/${runId}`).then((r) => r.data);
+export const getRunMetrics = (runId) => api.get(`/api/runs/${runId}/metrics`).then((r) => r.data);
+export const getRunConfusion = (runId) =>
+  api.get(`/api/runs/${runId}/confusion-matrix`).then((r) => r.data);
+export const getRunCurves = (runId) => api.get(`/api/runs/${runId}/curves`).then((r) => r.data);
+export const getRunHistory = (runId) =>
+  api.get(`/api/runs/${runId}/training-history`).then((r) => r.data);
+export const getRunPerSubject = (runId) =>
+  api.get(`/api/runs/${runId}/per-subject`).then((r) => r.data);
+export const getRunFeatureImportance = (runId) =>
+  api.get(`/api/runs/${runId}/feature-importance`).then((r) => r.data);
+export const getRunRepresentations = (runId) =>
+  api.get(`/api/runs/${runId}/representations`).then((r) => r.data);
+export const getRunExperiments = (runId) =>
+  api.get(`/api/runs/${runId}/experiments`).then((r) => r.data);
+export const getRunPredictions = (runId, params = {}) =>
+  api.get(`/api/runs/${runId}/predictions`, { params }).then((r) => r.data);
+
+// Direct URL for a figure the run rendered (served as image/png).
+export const runFigureUrl = (runId, path) =>
+  `${baseURL}/api/runs/${runId}/figure?path=${encodeURIComponent(path)}`;
 
 export default api;

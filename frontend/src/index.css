@@ -1736,3 +1736,98 @@ select,
     transform: none;
   }
 }
+
+/* ── Model switch: 2-class ↔ 3-class ─────────────────────────────────────── */
+.model-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.model-switch-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.model-switch-seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+}
+.model-switch-opt {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: calc(var(--r-sm) - 3px);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  transition: background 0.16s, color 0.16s;
+}
+.model-switch-opt:hover:not(.is-disabled):not(.is-active) {
+  color: var(--accent-ink);
+  background: var(--surface);
+}
+.model-switch-opt.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+.model-switch-opt.is-disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.model-switch-opt-sub {
+  font-size: 0.68rem;
+  font-weight: 500;
+  opacity: 0.82;
+  letter-spacing: 0.01em;
+}
+
+/* Compact: sits in the nav bar next to the theme toggle. */
+.model-switch--compact .model-switch-seg {
+  height: 34px;
+  align-items: stretch;
+}
+.model-switch--compact .model-switch-opt {
+  padding: 0 10px;
+  font-size: 0.78rem;
+}
+
+/* Hero: the landing-page control, on the dark band. */
+.model-switch--hero .model-switch-label {
+  color: rgba(255, 255, 255, 0.62);
+}
+.model-switch--hero .model-switch-seg {
+  padding: 4px;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(4px);
+}
+.model-switch--hero .model-switch-opt {
+  padding: 7px 16px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.78);
+  gap: 2px;
+}
+.model-switch--hero .model-switch-opt:hover:not(.is-disabled):not(.is-active) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.model-switch--hero .model-switch-opt.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .model-switch--compact .model-switch-label {
+    display: none;
+  }
+}

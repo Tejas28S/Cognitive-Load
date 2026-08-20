@@ -17,7 +17,7 @@ const LEVELS = ["Low", "Medium", "High"];
 // Predicted cognitive load across a session. y = load level (0/1/2). The
 // Medium band is shaded as a literature-informed "sustained-engagement" zone -
 // informational only, not a diagnosis or a hard target (Yerkes-Dodson framing).
-export default function TrendChart({ session }) {
+export default function TrendChart({ session, classNames = CLASS_NAMES }) {
   const c = useChartColors();
   const reduced = usePrefersReducedMotion();
   if (!session || session.length === 0) return null;
@@ -75,7 +75,12 @@ export default function TrendChart({ session }) {
             isAnimationActive={!reduced}
             animationDuration={700}
           />
-          <Scatter dataKey="truth" name="Ground truth" isAnimationActive={!reduced} shape={TruthDot} />
+          <Scatter
+            dataKey="truth"
+            name="Ground truth"
+            isAnimationActive={!reduced}
+            shape={(props) => <TruthDot {...props} classNames={classNames} />}
+          />
         </ComposedChart>
       </ResponsiveContainer>
       <div style={{ display: "flex", gap: 18, marginTop: 6, flexWrap: "wrap" }}>
@@ -87,14 +92,14 @@ export default function TrendChart({ session }) {
   );
 }
 
-function TruthDot({ cx, cy, payload }) {
+function TruthDot({ cx, cy, payload, classNames = CLASS_NAMES }) {
   if (cx == null || cy == null) return null;
   return (
     <circle
       cx={cx}
       cy={cy}
       r={4.5}
-      fill={CLASS_COLORS[CLASS_NAMES[payload.truth]] || "#94a3b8"}
+      fill={CLASS_COLORS[classNames[payload.truth]] || "#94a3b8"}
       stroke="var(--surface)"
       strokeWidth={1.5}
     />

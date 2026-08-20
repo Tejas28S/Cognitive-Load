@@ -1,5 +1,6 @@
 import { getMetrics, getDiagnostics } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
+import { useModelVersion } from "../lib/modelVersion";
 import { fmt } from "../constants";
 import Reveal from "../components/research/Reveal";
 import Figure from "../components/research/Figure";
@@ -21,14 +22,15 @@ const pct = (x) => (x == null ? "-" : `${(x * 100).toFixed(1)}%`);
 
 // Load metrics (required) + diagnostics (optional - may 404 if the artifact
 // hasn't been generated; the calibration section then hides gracefully).
-const loadAll = () =>
+const loadAll = (version) =>
   Promise.all([
-    getMetrics(),
-    getDiagnostics().catch(() => null),
+    getMetrics(version),
+    getDiagnostics(version).catch(() => null),
   ]).then(([metrics, diagnostics]) => ({ metrics, diagnostics }));
 
 export default function Methodology() {
-  const { data, loading, error } = useApi(loadAll);
+  const { version } = useModelVersion();
+  const { data, loading, error } = useApi(() => loadAll(version), [version]);
   if (loading) return <div className="container"><Loading /></div>;
   if (error) return <div className="container"><ErrorBox error={error} /></div>;
 
