@@ -7,6 +7,9 @@ const prefersReduced = () =>
 // Counts up to `value` once the tile scrolls into view. `format(n)` renders each
 // frame (e.g. as a percent). Falls back to the final value instantly under
 // reduced-motion. Numbers are set in the display serif + tabular figures.
+//
+// There used to be an `onDark` variant for the hero's dark instrument band.
+// The band is light now, so the tile always renders in ink.
 export default function MetricStat({
   value,
   format = (n) => n.toFixed(2),
@@ -14,7 +17,6 @@ export default function MetricStat({
   sub,
   accent,
   duration = 1100,
-  onDark = false,
 }) {
   const [shown, setShown] = useState(prefersReduced() ? value : 0);
   const ref = useRef(null);
@@ -64,7 +66,7 @@ export default function MetricStat({
       <div
         className="stat-value"
         style={{
-          color: accent || (onDark ? "var(--on-deep)" : "var(--ink)"),
+          color: accent || "var(--ink)",
           fontSize: "clamp(2rem, 1.4rem + 1.8vw, 2.9rem)",
         }}
       >
@@ -72,14 +74,14 @@ export default function MetricStat({
       </div>
       <div
         className="stat-label"
-        style={{ color: onDark ? "var(--on-deep-2)" : undefined, marginTop: 4 }}
+        style={{ marginTop: 4 }}
       >
         {label}
       </div>
       {sub && (
         <div
           className="stat-sub"
-          style={{ color: onDark ? "var(--on-deep-2)" : "var(--ink-2)", marginTop: 3 }}
+          style={{ color: "var(--ink-2)", marginTop: 3 }}
         >
           {sub}
         </div>

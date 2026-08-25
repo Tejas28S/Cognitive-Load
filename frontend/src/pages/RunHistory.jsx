@@ -5,10 +5,10 @@ import { getRuns } from "../api/client";
 import { useApi, ErrorBox, Loading } from "../useApi";
 
 const n = (v, d = 4) =>
-  v === null || v === undefined || Number.isNaN(v) ? "—" : Number(v).toFixed(d);
+  v === null || v === undefined || Number.isNaN(v) ? "-" : Number(v).toFixed(d);
 
 const when = (iso) => {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 };
@@ -42,7 +42,7 @@ export default function RunHistory() {
         <p className="lede">
           Every training run ever executed, listed from the run archive at{" "}
           <span className="mono">{data?.runs_root}</span>. Runs are never
-          overwritten and failed runs are never deleted — a failure is kept with
+          overwritten and failed runs are never deleted, a failure is kept with
           its metadata, config and logs so it can be debugged.
         </p>
       </div>
@@ -112,15 +112,15 @@ export default function RunHistory() {
                   <td style={{ padding: "10px 12px", color: "var(--ink-2)", whiteSpace: "nowrap" }}>
                     {when(r.created_at)}
                   </td>
-                  <td style={{ padding: "10px 12px", color: "var(--ink-2)" }}>{r.dataset || "—"}</td>
+                  <td style={{ padding: "10px 12px", color: "var(--ink-2)" }}>{r.dataset || "-"}</td>
                   <td style={{ padding: "10px 12px" }}>
-                    {r.classification_mode || "—"}
+                    {r.classification_mode || "-"}
                     {r.class_names?.length ? (
                       <div className="muted" style={{ fontSize: 10 }}>{r.class_names.join(" / ")}</div>
                     ) : null}
                   </td>
                   <td style={{ padding: "10px 12px", color: "var(--ink-2)", maxWidth: 200 }}>
-                    {r.protocol || "—"}
+                    {r.protocol || "-"}
                   </td>
                   <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600,
                     fontVariantNumeric: "tabular-nums" }}>
@@ -131,7 +131,7 @@ export default function RunHistory() {
                     {n(r.metrics?.lockbox_f1_macro)}
                   </td>
                   <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--ink-2)" }}>
-                    {r.n_experiments ?? "—"}
+                    {r.n_experiments ?? "-"}
                   </td>
                   <td style={{ padding: "10px 12px" }}>
                     <Link to={`/evaluation?run=${r.run_id}`}>open →</Link>
@@ -145,7 +145,7 @@ export default function RunHistory() {
 
       <p className="muted" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.6 }}>
         A run marked <em>interrupted</em> recorded itself as running but has not
-        written an update in over 30 minutes — its process was most likely killed.
+        written an update in over 30 minutes, its process was most likely killed.
         The status stored on disk is left untouched; only this view flags it.
       </p>
     </div>

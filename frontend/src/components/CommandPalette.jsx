@@ -5,7 +5,9 @@ import { useTheme } from "../lib/theme";
 // ⌘K / Ctrl-K command palette: fuzzy-ish quick nav across every page plus a few
 // global actions (theme). Opens on the shortcut or the nav "⌘K" affordance.
 const PAGES = [
-  { to: "/", label: "Overview", hint: "Headline result & summary" },
+  { to: "/", label: "Home", hint: "Landing page & project abstract" },
+  { to: "/overview", label: "Overview", hint: "Headline result & summary" },
+  { to: "/workflow", label: "Workflow", hint: "The research pipeline, stage by stage" },
   { to: "/research", label: "Research", hint: "DANN, protocol taxonomy, ablations" },
   { to: "/live", label: "Live Prediction", hint: "Run a held-out window" },
   { to: "/session", label: "Session Trend", hint: "Play back a subject's trials" },
@@ -14,6 +16,9 @@ const PAGES = [
   { to: "/evaluation", label: "Evaluation Metrics", hint: "Full metrics for one training run" },
   { to: "/runs", label: "Run History", hint: "Every run in the archive" },
   { to: "/methodology", label: "Methodology", hint: "Why LOSO ≠ fixed split" },
+  { to: "/about", label: "About", hint: "Motivation & working principles" },
+  { to: "/bios", label: "Team", hint: "Who built this" },
+  { to: "/faq", label: "FAQ", hint: "Plain-language answers" },
 ];
 
 export default function CommandPalette({ open, setOpen }) {

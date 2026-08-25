@@ -1,29 +1,48 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type DependencyList } from "react";
 
-// Minimal async-data hook: runs `fn` on mount (and when deps change),
-// exposing { data, loading, error }.
-export function useApi(fn, deps = []) {
-  const [state, setState] = useState({ data: null, loading: true, error: null });
+export type ApiState<T> = {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+};
+
+/**
+ * Minimal async-data hook: runs `fn` on mount (and when `deps` change),
+ * exposing { data, loading, error }.
+ *
+ * The `alive` flag is what makes a fast route change safe — a response that
+ * lands after the component unmounted is dropped rather than setting state.
+ */
+export function useApi<T>(
+  fn: () => Promise<T>,
+  deps: DependencyList = []
+): ApiState<T> {
+  const [state, setState] = useState<ApiState<T>>({
+    data: null,
+    loading: true,
+    error: null,
+  });
+
   useEffect(() => {
     let alive = true;
     setState((s) => ({ ...s, loading: true, error: null }));
     Promise.resolve()
       .then(fn)
-      .then((data) => alive && setState({ data, loading: false, error: null }))
-      .catch(
-        (err) =>
-          alive &&
-          setState({
-            data: null,
-            loading: false,
-            error: err?.message || "Request failed",
-          })
-      );
+      .then((data) => {
+        if (alive) setState({ data, loading: false, error: null });
+      })
+      .catch((err: unknown) => {
+        if (!alive) return;
+        const message =
+          err instanceof Error ? err.message : "Request failed";
+        setState({ data: null, loading: false, error: message });
+      });
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+
   return state;
 }
 
@@ -45,7 +64,7 @@ export function Loading() {
   );
 }
 
-export function ErrorBox({ error }) {
+export function ErrorBox({ error }: { error: string | null }) {
   return (
     <div className="error">
       Could not reach the API ({error}). Is the backend running on{" "}

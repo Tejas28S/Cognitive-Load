@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { uploadCsv, uploadMat, uploadTemplateUrl } from "../api/client";
 import ExportMenu from "../components/ExportMenu";
+import PredictionReport from "../components/PredictionReport";
 import { stampFilename } from "../lib/exportData";
 import { CLASS_COLORS, CLASS_NAMES } from "../constants";
 import { useModelVersion } from "../lib/modelVersion";
@@ -54,6 +55,7 @@ export default function UploadData() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [reportRowIndex, setReportRowIndex] = useState(null);
   const inputRef = useRef(null);
   const eegInputRef = useRef(null);
   const nirsInputRef = useRef(null);
@@ -63,6 +65,7 @@ export default function UploadData() {
     setBusy(true);
     setError(null);
     setResult(null);
+    setReportRowIndex(null);
     try {
       const data = await uploadCsv(file, version);
       setResult(data);
@@ -87,6 +90,7 @@ export default function UploadData() {
     setBusy(true);
     setError(null);
     setResult(null);
+    setReportRowIndex(null);
     try {
       const data = await uploadMat(eegFile, nirsFile, version);
       setResult(data);
@@ -124,10 +128,10 @@ export default function UploadData() {
       {uploadMode === "csv" && (
         <div className="note" style={{ marginBottom: 20 }}>
           This expects already-extracted features in the project's format
-          (<strong>180 EEG + 468 HbO columns</strong>, plus <span className="mono">subject_id</span> and
-          optionally <span className="mono">Cognitive_Load</span>). The
-          standard HbR (<span className="mono">hbr_*</span>) and <span className="mono">task</span> columns
-          may be present - they are ignored by the model.
+          (<strong>540 EEG + 936 fNIRS (HbO + HbR) columns</strong>, plus <span className="mono">subject_id</span> and
+          optionally <span className="mono">Cognitive_Load</span>). The exact
+          required columns live in <span className="mono">feature_schema.json</span>;
+          download a ready-made example below rather than hand-building a CSV.
         </div>
       )}
       
@@ -326,7 +330,7 @@ export default function UploadData() {
                         : `${(result.summary.accuracy_vs_uploaded_labels * 100).toFixed(1)}%`
                     }
                   />
-                  <Row label="Served model" value="Hybrid + RF ensemble" />
+                  <Row label="Served model" value={result.served_model_label || result.served_model} />
                 </div>
                 {result.normalization !== "per_subject" && (
                   <div className="note" style={{ fontSize: "0.82rem" }}>
@@ -380,11 +384,12 @@ export default function UploadData() {
                     <th>Predicted</th>
                     <th>Probabilities [L·M·H]</th>
                     <th>True label</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.predictions.map((r) => (
-                    <tr key={r.row_index}>
+                    <tr key={r.row_index} className={reportRowIndex === r.row_index ? "is-best" : undefined}>
                       <td>{r.row_index}</td>
                       <td>{r.subject_id ?? "-"}</td>
                       <td style={{ textAlign: "left" }}>
@@ -407,12 +412,36 @@ export default function UploadData() {
                       >
                         {r.true_label_name ?? "-"}
                       </td>
+                      <td style={{ textAlign: "left" }}>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: "3px 10px", fontSize: "0.78rem" }}
+                          onClick={() =>
+                            setReportRowIndex(reportRowIndex === r.row_index ? null : r.row_index)
+                          }
+                        >
+                          {reportRowIndex === r.row_index ? "Hide report" : "Report"}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
+
+          {reportRowIndex != null && (() => {
+            const row = result.predictions.find((r) => r.row_index === reportRowIndex);
+            if (!row) return null;
+            return (
+              <PredictionReport
+                result={{ ...row, window_index: row.row_index, subject_id: row.subject_id ?? "N/A" }}
+                classNames={classNames}
+                label="Upload"
+                version={version}
+              />
+            );
+          })()}
         </>
       )}
     </div>

@@ -28,7 +28,7 @@ import {
 import { useApi, ErrorBox, Loading } from "../useApi";
 
 const n = (v, d = 4) =>
-  v === null || v === undefined || Number.isNaN(v) ? "—" : Number(v).toFixed(d);
+  v === null || v === undefined || Number.isNaN(v) ? "-" : Number(v).toFixed(d);
 
 // Metric groups. Order and labels are fixed; every VALUE is read from the run.
 const OVERALL = [
@@ -38,20 +38,20 @@ const OVERALL = [
   ["mcc", "Matthews Corr. Coef."],
 ];
 const AVERAGED = [
-  ["precision_macro", "Precision — macro"],
-  ["recall_macro", "Recall — macro"],
-  ["f1_macro", "F1 — macro"],
-  ["precision_weighted", "Precision — weighted"],
-  ["recall_weighted", "Recall — weighted"],
-  ["f1_weighted", "F1 — weighted"],
-  ["precision_micro", "Precision — micro"],
-  ["recall_micro", "Recall — micro"],
-  ["f1_micro", "F1 — micro"],
+  ["precision_macro", "Precision, macro"],
+  ["recall_macro", "Recall, macro"],
+  ["f1_macro", "F1, macro"],
+  ["precision_weighted", "Precision, weighted"],
+  ["recall_weighted", "Recall, weighted"],
+  ["f1_weighted", "F1, weighted"],
+  ["precision_micro", "Precision, micro"],
+  ["recall_micro", "Recall, micro"],
+  ["f1_micro", "F1, micro"],
 ];
 const PROBABILISTIC = [
-  ["roc_auc_macro_ovr", "ROC-AUC — macro OVR"],
-  ["roc_auc_macro_ovo", "ROC-AUC — macro OVO"],
-  ["average_precision_macro", "Average precision — macro"],
+  ["roc_auc_macro_ovr", "ROC-AUC, macro OVR"],
+  ["roc_auc_macro_ovo", "ROC-AUC, macro OVO"],
+  ["average_precision_macro", "Average precision, macro"],
   ["log_loss", "Log loss"],
   ["brier_score", "Brier score"],
 ];
@@ -177,7 +177,7 @@ export default function EvaluationMetrics() {
         {selected && (
           <div style={{ display: "flex", gap: 26, flexWrap: "wrap" }}>
             <Meta label="Classification mode" value={selected.classification_mode} />
-            <Meta label="Classes" value={classNames.join(" / ") || "—"} />
+            <Meta label="Classes" value={classNames.join(" / ") || "-"} />
             <Meta label="Subjects" value={selected.n_subjects} />
             <Meta label="Windows" value={selected.n_samples?.toLocaleString?.()} />
             <Meta label="Experiments" value={selected.n_experiments} />
@@ -265,7 +265,7 @@ export default function EvaluationMetrics() {
               <KV k="Windows" v={dsInfo.n_samples?.toLocaleString?.()} mono />
               <KV k="Subjects" v={dsInfo.n_subjects} mono />
               <KV k="Trials" v={dsInfo.n_trials} mono />
-              <KV k="Window length" v={dsInfo.window_sec ? `${dsInfo.window_sec}s` : "—"} mono />
+              <KV k="Window length" v={dsInfo.window_sec ? `${dsInfo.window_sec}s` : "-"} mono />
               <KV
                 k="Classes"
                 v={(dsInfo.class_names || []).map((c, i) =>
@@ -298,31 +298,31 @@ export default function EvaluationMetrics() {
           id="headline"
           num={2}
           title="Held-out performance"
-          lede="Cross-subject results: the mean and spread over folds, where each fold's model never saw the evaluated subject. Validation performance is reported separately below — it is what selected the checkpoint, not an estimate of generalization."
+          lede="Cross-subject results: the mean and spread over folds, where each fold's model never saw the evaluated subject. Validation performance is reported separately below, it is what selected the checkpoint, not an estimate of generalization."
         >
           <div className="grid grid-4">
             <MetricCard
-              label="Macro F1 — held-out"
+              label="Macro F1, held-out"
               value={foldAgg.f1_macro?.mean}
               suffix={`± ${n(foldAgg.f1_macro?.std, 3)}`}
               explanation={explain.f1_macro}
               emphasis
             />
             <MetricCard
-              label="Accuracy — held-out"
+              label="Accuracy, held-out"
               value={foldAgg.accuracy?.mean}
               suffix={`± ${n(foldAgg.accuracy?.std, 3)}`}
               explanation={explain.accuracy}
               chance={chance}
             />
             <MetricCard
-              label="ROC-AUC — held-out"
+              label="ROC-AUC, held-out"
               value={foldAgg.roc_auc?.mean}
               suffix={`± ${n(foldAgg.roc_auc?.std, 3)}`}
               explanation={explain.roc_auc_macro_ovr}
             />
             <MetricCard
-              label="MCC — held-out"
+              label="MCC, held-out"
               value={foldAgg.mcc?.mean}
               suffix={`± ${n(foldAgg.mcc?.std, 3)}`}
               explanation={explain.mcc}
@@ -333,7 +333,7 @@ export default function EvaluationMetrics() {
             <div className="grid grid-2" style={{ marginTop: 18 }}>
               {lockbox && (
                 <div className="card">
-                  <h3 style={{ marginTop: 0 }}>Lockbox — subjects never used for selection</h3>
+                  <h3 style={{ marginTop: 0 }}>Lockbox, subjects never used for selection</h3>
                   <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>
                     Subjects {(lockbox.subjects || []).join(", ")}. Evaluated once, after
                     the model was chosen. This is the estimate least affected by
@@ -420,12 +420,12 @@ export default function EvaluationMetrics() {
                         <td style={{ padding: "6px 8px", textAlign: "right" }}>{n(b)}</td>
                         <td style={{ padding: "6px 8px", textAlign: "right",
                           color: t?.mean_diff > 0 ? "#0f766e" : t?.mean_diff < 0 ? "#b91c1c" : undefined }}>
-                          {t?.mean_diff != null ? (t.mean_diff > 0 ? "+" : "") + n(t.mean_diff) : "—"}
+                          {t?.mean_diff != null ? (t.mean_diff > 0 ? "+" : "") + n(t.mean_diff) : "-"}
                         </td>
                         <td style={{ padding: "6px 8px", textAlign: "right" }}>{n(t?.t_p, 3)}</td>
                         <td style={{ padding: "6px 8px", textAlign: "right" }}>{n(t?.wilcoxon_p, 3)}</td>
                         <td style={{ padding: "6px 8px", textAlign: "right" }}>
-                          {t ? `${t.wins}/${t.losses}` : "—"}
+                          {t ? `${t.wins}/${t.losses}` : "-"}
                         </td>
                       </tr>
                     ))}
@@ -566,7 +566,7 @@ export default function EvaluationMetrics() {
           id="subjects"
           num={8}
           title="Per-subject held-out performance"
-          lede={`${perSubject.data.protocol}. Each bar is one subject the model never trained on — the spread across subjects is the real measure of cross-person robustness.`}
+          lede={`${perSubject.data.protocol}. Each bar is one subject the model never trained on, the spread across subjects is the real measure of cross-person robustness.`}
         >
           <Figure num={4} title="Macro F1 per held-out subject"
             source={`outputs/runs/${runId}/metrics/per_subject_metrics.csv`}>
@@ -612,7 +612,7 @@ export default function EvaluationMetrics() {
           id="curves"
           num={9}
           title="Training vs validation curves"
-          lede="Averaged over folds. Folds stop at different epochs, so later points average fewer folds — the tooltip reports how many. Validation is what selected each checkpoint; it is not held-out performance."
+          lede="Averaged over folds. Folds stop at different epochs, so later points average fewer folds, the tooltip reports how many. Validation is what selected each checkpoint; it is not held-out performance."
         >
           <div className="grid grid-2">
             <Figure num={5} title="Loss" source={`outputs/runs/${runId}/curves/training_history.json`}>
@@ -689,7 +689,7 @@ export default function EvaluationMetrics() {
             </div>
           }
         >
-          <Figure num={11} title={`t-SNE — ${tsneVariant.replace(/_/g, " ")}`}
+          <Figure num={11} title={`t-SNE, ${tsneVariant.replace(/_/g, " ")}`}
             source={`outputs/runs/${runId}/representations/tsne_${tsneVariant}.csv`}>
             <TsneScatter
               points={reps.data.variants?.[tsneVariant]?.points}
@@ -718,10 +718,10 @@ export default function EvaluationMetrics() {
                     <tr key={k} style={{ borderTop: "1px solid var(--rule)" }}>
                       <td style={{ padding: "6px 8px" }}>{k.replace(/_/g, " ")}</td>
                       <td style={{ padding: "6px 8px", textAlign: "right" }}>
-                        {p ? `${n(p.accuracy_mean, 3)} ± ${n(p.accuracy_std, 3)}` : "—"}
+                        {p ? `${n(p.accuracy_mean, 3)} ± ${n(p.accuracy_std, 3)}` : "-"}
                       </td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--ink-2)" }}>
-                        {p ? n(p.chance_uniform, 3) : "—"}
+                        {p ? n(p.chance_uniform, 3) : "-"}
                       </td>
                     </tr>
                   );
@@ -738,7 +738,7 @@ export default function EvaluationMetrics() {
           id="experiments"
           num={12}
           title="Experiment comparison"
-          lede="Every arm this run trained, ranked by development-LOSO macro F1. Rejected arms are kept — a negative result is evidence, not clutter."
+          lede="Every arm this run trained, ranked by development-LOSO macro F1. Rejected arms are kept, a negative result is evidence, not clutter."
         >
           <Figure num={12} title="All experiments, development LOSO"
             source={`outputs/runs/${runId}/experiments/leaderboard.csv`}>
@@ -750,7 +750,7 @@ export default function EvaluationMetrics() {
 
           {experiments.data.stage_log?.length > 0 && (
             <div className="card" style={{ marginTop: 18, overflowX: "auto" }}>
-              <h3 style={{ marginTop: 0 }}>Stage log — what was accepted and what was rejected</h3>
+              <h3 style={{ marginTop: 0 }}>Stage log, what was accepted and what was rejected</h3>
               <table className="mono" style={{ width: "100%", fontSize: 11.5, borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ textAlign: "left", color: "var(--ink-2)" }}>
@@ -813,7 +813,7 @@ export default function EvaluationMetrics() {
                       color: e.vs_baseline?.mean_diff > 0 ? "#0f766e" : e.vs_baseline?.mean_diff < 0 ? "#b91c1c" : undefined }}>
                       {e.vs_baseline?.mean_diff != null
                         ? (e.vs_baseline.mean_diff > 0 ? "+" : "") + n(e.vs_baseline.mean_diff, 3)
-                        : "—"}
+                        : "-"}
                     </td>
                     <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--ink-2)" }}>
                       {n(e.vs_baseline?.t_p, 3)}
@@ -863,7 +863,7 @@ export default function EvaluationMetrics() {
                   </span>
                   <span style={{ fontSize: 11.5 }}>
                     <span className="mono">{c.check}</span>
-                    <span className="muted"> — {c.detail}</span>
+                    <span className="muted">, {c.detail}</span>
                   </span>
                 </div>
               ))}
@@ -902,7 +902,7 @@ function Meta({ label, value }) {
       <div className="stat-label" style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
-      <div className="mono" style={{ fontSize: 13, marginTop: 2 }}>{value ?? "—"}</div>
+      <div className="mono" style={{ fontSize: 13, marginTop: 2 }}>{value ?? "-"}</div>
     </div>
   );
 }
@@ -912,7 +912,7 @@ function KV({ k, v, mono }) {
     <div style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "4px 0", fontSize: 12.5 }}>
       <span className="muted" style={{ flexShrink: 0 }}>{k}</span>
       <span className={mono ? "mono" : ""} style={{ textAlign: "right", wordBreak: "break-word" }}>
-        {v ?? "—"}
+        {v ?? "-"}
       </span>
     </div>
   );

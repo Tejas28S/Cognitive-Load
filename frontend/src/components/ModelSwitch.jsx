@@ -41,7 +41,7 @@ export default function ModelSwitch({ variant = "compact", showLabel = true }) {
               title={
                 b.available
                   ? `Serve the ${label} model (${sub})`
-                  : `${label} unavailable — ${b.reason}`
+                  : `${label} unavailable, ${b.reason}`
               }
             >
               <span className="model-switch-opt-main">{label}</span>

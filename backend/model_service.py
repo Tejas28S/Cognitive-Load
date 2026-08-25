@@ -142,6 +142,7 @@ class ModelService:
         rf_path = os.path.join(serving_dir, self.ens_cfg.get("rf_file", "rf_model.pkl"))
         self.rf = None # Disabled the legacy RF ensemble since the new Hybrid model is much better alone
         self.served_model = "hybrid_cnn_lstm"
+        self.served_model_label = "Hybrid network (EEG + fNIRS fusion)"
 
     def _split(self, feats):
         arr = np.asarray(feats, dtype=np.float32)

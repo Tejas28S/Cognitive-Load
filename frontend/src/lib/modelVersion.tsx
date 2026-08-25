@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { getBundles } from "../api/client";
 
 // Which trained model the whole app is talking to: "binary" (Low/High) or
@@ -6,10 +13,33 @@ import { getBundles } from "../api/client";
 // the backend can actually serve, so a stored pick for a bundle whose artifacts
 // have gone missing falls back instead of erroring every page.
 
-const STORAGE_KEY = "cl-model-version";
-const ModelVersionContext = createContext(null);
+export type ModelVersionId = "binary" | "3class";
 
-const readStored = () => {
+export type Bundle = {
+  version: ModelVersionId;
+  available: boolean;
+  num_classes?: number;
+  class_names?: string[];
+  /** Why an unavailable bundle can't be served. */
+  reason?: string;
+  [key: string]: unknown;
+};
+
+export type ModelVersionValue = {
+  version: ModelVersionId;
+  setVersion: (next: ModelVersionId) => void;
+  bundles: Bundle[];
+  available: Bundle[];
+  active: Bundle | null;
+  classNames: string[] | null;
+  ready: boolean;
+  error: string | null;
+};
+
+const STORAGE_KEY = "cl-model-version";
+const ModelVersionContext = createContext<ModelVersionValue | null>(null);
+
+const readStored = (): ModelVersionId | null => {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     return v === "binary" || v === "3class" ? v : null;
@@ -18,16 +48,21 @@ const readStored = () => {
   }
 };
 
-export function ModelVersionProvider({ children }) {
-  const [bundles, setBundles] = useState(null);
-  const [error, setError] = useState(null);
-  const [choice, setChoice] = useState(readStored);
+export function ModelVersionProvider({ children }: { children: ReactNode }) {
+  const [bundles, setBundles] = useState<Bundle[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [choice, setChoice] = useState<ModelVersionId | null>(readStored);
 
   useEffect(() => {
     let alive = true;
-    getBundles()
-      .then((d) => alive && setBundles(d.bundles || []))
-      .catch((e) => alive && setError(e?.message || "Request failed"));
+    getBundles<{ bundles?: Bundle[] }>()
+      .then((d) => {
+        if (alive) setBundles(d.bundles || []);
+      })
+      .catch((e: unknown) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : "Request failed");
+      });
     return () => {
       alive = false;
     };
@@ -40,13 +75,13 @@ export function ModelVersionProvider({ children }) {
 
   // Before /api/bundles answers, assume the stored choice so the first render
   // does not fetch under one version and then immediately refetch under another.
-  const version = useMemo(() => {
+  const version = useMemo<ModelVersionId>(() => {
     if (bundles === null) return choice || "binary";
     if (choice && available.some((b) => b.version === choice)) return choice;
     return available[0]?.version || choice || "binary";
   }, [choice, available, bundles]);
 
-  const setVersion = (next) => {
+  const setVersion = (next: ModelVersionId) => {
     setChoice(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);
@@ -57,7 +92,7 @@ export function ModelVersionProvider({ children }) {
 
   const active = (bundles || []).find((b) => b.version === version) || null;
 
-  const value = useMemo(
+  const value = useMemo<ModelVersionValue>(
     () => ({
       version,
       setVersion,
@@ -80,7 +115,7 @@ export function ModelVersionProvider({ children }) {
   );
 }
 
-export function useModelVersion() {
+export function useModelVersion(): ModelVersionValue {
   const ctx = useContext(ModelVersionContext);
   if (!ctx)
     throw new Error("useModelVersion must be used inside <ModelVersionProvider>");
@@ -88,7 +123,7 @@ export function useModelVersion() {
 }
 
 // Human label for a bundle: "2-class · Low / High".
-export function bundleLabel(b) {
+export function bundleLabel(b: Bundle | null | undefined): string {
   if (!b) return "";
   const n = b.num_classes || b.class_names?.length;
   return n ? `${n}-class` : b.version;

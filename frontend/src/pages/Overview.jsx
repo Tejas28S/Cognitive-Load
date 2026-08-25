@@ -18,6 +18,13 @@ const pct = (x) => (x == null ? "-" : `${(x * 100).toFixed(1)}%`);
 
 const TEASERS = [
   {
+    stamp: "Current work",
+    title: "The leakage-audited campaign behind the binary model",
+    body: "42 controlled experiments on an 18-subject dev pool, one 8-subject lockbox touched once, and a leakage audit that aborts a run rather than let it produce a flattered score. Every run is archived and independently re-verifiable.",
+    to: "/evaluation",
+    go: "Evaluation →",
+  },
+  {
     stamp: "Scholarship",
     title: "The honest protocol",
     body: "Literature's 60–90% is usually a binary or within-subject task. This reports 3-class, leave-one-subject-out - and shows exactly why the gap exists.",
@@ -106,11 +113,11 @@ export default function Overview() {
 
           {!loading && !error && (
             <div className="hero-metrics">
-              <MetricStat onDark value={heroLoso.f1_mean} format={pct}
+              <MetricStat value={heroLoso.f1_mean} format={pct}
                 label={`Macro F1 · LOSO · ${heroLabel}`} sub="Hybrid, 26 subjects held out" />
-              <MetricStat onDark value={heroLoso.acc_mean} format={pct}
+              <MetricStat value={heroLoso.acc_mean} format={pct}
                 label="Accuracy · LOSO" sub={`${heroLabel} · chance ≈ ${heroChance}`} />
-              <MetricStat onDark value={26} format={(n) => Math.round(n).toString()}
+              <MetricStat value={26} format={(n) => Math.round(n).toString()}
                 label="Subjects" sub="TU Berlin / Shin n-back" />
             </div>
           )}
@@ -179,7 +186,7 @@ export default function Overview() {
               )}
               {!has3c && (
                 <div className="note" style={{ marginTop: 16 }}>
-                  The legacy 3-class comparison is unavailable — <code>serving_3class/</code>
+                  The legacy 3-class comparison is unavailable, <code>serving_3class/</code>
                   {" "}is missing <code>model_weights.pt</code> and <code>feature_scaler.pkl</code>.
                   Add them and this section returns automatically.
                 </div>
@@ -208,8 +215,8 @@ export default function Overview() {
               <div className="teaser-grid" style={{ marginTop: 16 }}>
                 {TEASERS.map((t) => (
                   <Link key={t.title} to={t.to} className="teaser">
-                    <div className="teaser-stamp">{t.stamp}</div>
                     <h3>{t.title}</h3>
+                    <div className="teaser-stamp">{t.stamp}</div>
                     <p>{t.body}</p>
                     <span className="teaser-go">{t.go}</span>
                   </Link>
@@ -221,11 +228,11 @@ export default function Overview() {
             <Reveal as="section" className="card">
               <h2>What the model does</h2>
               <p>
-                Each input is a per-trial feature window: 180 EEG band-power
-                features and 468 fNIRS (HbO) response-shape descriptors. Two
+                Each input is a per-trial feature window: 540 EEG band-power
+                features and 936 fNIRS (HbO + HbR) response-shape descriptors. Two
                 parallel encoders compress each modality, an attention-gated fusion
-                layer weighs them, and a small classifier outputs a Low / Medium /
-                High probability.
+                layer weighs them, and a small classifier outputs a {heroClasses.join(" / ")}{" "}
+                probability.
               </p>
               <Figure num="0" title="The served Hybrid + Random Forest ensemble." source="model_config.json">
                 <ArchitectureDiagram />

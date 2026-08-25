@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
 
 // Animated hero backdrop: drifting brain-signal "nodes" connected by faint
-// edges (EEG↔fNIRS motif) on a canvas, layered under the existing .band-dark
-// gradient. Adds a subtle scroll parallax. Honors reduced-motion by rendering a
-// single static frame. Sits absolutely behind the hero content.
+// edges (EEG↔fNIRS motif) on a canvas, layered under the .band-dark gradient.
+// Adds a subtle scroll parallax. Honors reduced-motion by rendering a single
+// static frame. Sits absolutely behind the hero content.
+//
+// The edge colour is read from the --ink token rather than hardcoded white:
+// the hero band is a light wash now, and white-on-white drew nothing.
 export default function AnimatedBand() {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
@@ -21,9 +24,13 @@ export default function AnimatedBand() {
     const N = 42;
 
     const css = () => {
-      const eeg = getComputedStyle(document.documentElement).getPropertyValue("--eeg").trim() || "#6366f1";
-      const fnirs = getComputedStyle(document.documentElement).getPropertyValue("--fnirs").trim() || "#06b6d4";
-      return { eeg, fnirs };
+      const read = (name, fallback) =>
+        getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+      return {
+        eeg: read("--eeg", "#6366f1"),
+        fnirs: read("--fnirs", "#06b6d4"),
+        edge: read("--ink-3", "#8a94a1"),
+      };
     };
     let colors = css();
 
@@ -62,13 +69,15 @@ export default function AnimatedBand() {
           const dy = a.y - b.y;
           const d2 = dx * dx + dy * dy;
           if (d2 < 128 * 128) {
-            const alpha = (1 - Math.sqrt(d2) / 128) * 0.18;
-            ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+            const alpha = (1 - Math.sqrt(d2) / 128) * 0.34;
+            ctx.strokeStyle = colors.edge;
+            ctx.globalAlpha = alpha;
             ctx.lineWidth = 0.6;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
             ctx.stroke();
+            ctx.globalAlpha = 1;
           }
         }
       }

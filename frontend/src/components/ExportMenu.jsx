@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { downloadNodePng } from "../lib/exportImage";
+import { downloadNodePdf } from "../lib/exportPdf";
 import { downloadCsv, downloadJson, copyJson } from "../lib/exportData";
 import { useToast } from "../lib/toast";
 
 // A compact "Export ▾" dropdown. Renders only the actions it has data for:
 //   pngRef   - a ref to the DOM node to rasterize (PNG)
+//   pdfRef   - a ref to the DOM node to rasterize into a paginated PDF
 //   csvRows  - array of flat row objects (CSV)
 //   jsonData - any serializable value (JSON download + copy)
 // `filename` is the base name (no extension). Feedback goes through toasts.
-export default function ExportMenu({ pngRef, csvRows, jsonData, filename = "export", label = "Export" }) {
+export default function ExportMenu({ pngRef, pdfRef, csvRows, jsonData, filename = "export", label = "Export" }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const wrapRef = useRef(null);
@@ -42,9 +44,10 @@ export default function ExportMenu({ pngRef, csvRows, jsonData, filename = "expo
   };
 
   const hasPng = !!pngRef;
+  const hasPdf = !!pdfRef;
   const hasCsv = Array.isArray(csvRows) && csvRows.length > 0;
   const hasJson = jsonData != null;
-  if (!hasPng && !hasCsv && !hasJson) return null;
+  if (!hasPng && !hasPdf && !hasCsv && !hasJson) return null;
 
   return (
     <div className="export-menu" ref={wrapRef} data-export-exclude="true">
@@ -69,6 +72,16 @@ export default function ExportMenu({ pngRef, csvRows, jsonData, filename = "expo
               }
             >
               <span className="export-ic">▦</span> Download PNG
+            </button>
+          )}
+          {hasPdf && (
+            <button
+              role="menuitem"
+              onClick={() =>
+                run(() => downloadNodePdf(pdfRef.current, filename), "Saved PDF")
+              }
+            >
+              <span className="export-ic">▤</span> Download PDF
             </button>
           )}
           {hasCsv && (

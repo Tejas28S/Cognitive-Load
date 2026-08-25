@@ -72,7 +72,7 @@ export default function RunSelector({ runs, value, onChange, label = "Evaluation
           {runs.map((r) => (
             <option key={r.run_id} value={r.run_id}>
               {r.run_id}
-              {r.tag ? ` — ${r.tag}` : ""}
+              {r.tag ? `, ${r.tag}` : ""}
               {r.status !== "completed" ? ` [${r.status}]` : ""}
             </option>
           ))}

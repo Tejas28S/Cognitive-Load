@@ -102,11 +102,11 @@ Outputs: `outputs/dann_ablation.json`, `outputs/dann_lambda_sweep.json`.
 
 Artifacts: `outputs/dann_ablation.json`, `outputs/dann_lambda_sweep.json`.
 
-| Config | Hybrid Macro F1 | Ensemble Macro F1 | Ensemble AUC | Subject-probe acc |
-|---|---:|---:|---:|---:|
-| Baseline (locked) | 0.3924 | 0.4520 | 0.6203 | 0.091 |
-| DANN (λ_max=1.0) | 0.3753 | 0.4545 | 0.6321 | 0.098 |
-| _chance_ | — | — | — | 0.050 |
+| Config            | Hybrid Macro F1 | Ensemble Macro F1 | Ensemble AUC | Subject-probe acc |
+| ----------------- | --------------: | ----------------: | -----------: | ----------------: |
+| Baseline (locked) |          0.3924 |            0.4520 |       0.6203 |             0.091 |
+| DANN (λ_max=1.0) |          0.3753 |            0.4545 |       0.6321 |             0.098 |
+| _chance_        |              — |                — |           — |             0.050 |
 
 Paired significance (macro F1, 26 folds): Hybrid-alone diff **−0.0171** (t p=0.63,
 Wilcoxon p=0.62); Ensemble (served) diff **+0.0025** (t p=0.88, Wilcoxon p=0.86).

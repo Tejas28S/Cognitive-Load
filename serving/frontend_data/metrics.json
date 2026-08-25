@@ -1,116 +1,61 @@
 {
-  "fixed_split": {
-    "hybrid": {
-      "acc": 0.4266666666666667,
-      "f1_macro": 0.4064479573913536,
-      "recall": [
-        0.5625,
-        0.5185185185185185,
-        0.1875
-      ],
-      "auc": 0.6304617526022754
-    },
-    "ensemble": {
-      "acc": 0.4,
-      "f1_macro": 0.39087301587301587,
-      "recall": [
-        0.5416666666666666,
-        0.42592592592592593,
-        0.22916666666666666
-      ],
-      "auc": 0.6178437424352458
-    }
-  },
   "loso": {
     "hybrid": {
-      "f1_mean": 0.6497,
-      "f1_std": 0.05,
-      "acc_mean": 0.6508,
-      "auc_mean": 0.68,
+      "f1_mean": 0.6255,
+      "f1_std": 0.104,
+      "acc_mean": 0.6309,
+      "auc_mean": 0.6775,
       "recall_mean": [
-        0.65,
-        0.65
-      ]
-    },
-    "fnirs_only": {
-      "f1_mean": 0.41264563013862365,
-      "f1_std": 0.08654566902808693,
-      "acc_mean": 0.42968660968660977,
-      "auc_mean": 0.6117186190715602,
-      "recall_mean": [
-        0.5721153846153846,
-        0.4358974358974358,
-        0.280982905982906
-      ]
-    },
-    "hybrid_non_normalized": {
-      "f1_mean": 0.284075156533673,
-      "f1_std": 0.09130175662279702,
-      "acc_mean": 0.34849002849002847,
-      "auc_mean": 0.5522072789229652,
-      "recall_mean": [
-        0.45779914529914534,
-        0.3803418803418804,
-        0.20192307692307693
-      ]
-    },
-    "ensemble_hybrid_rf": {
-      "f1_mean": 0.65,
-      "f1_std": 0.04,
-      "acc_mean": 0.651,
-      "auc_mean": 0.685,
-      "recall_mean": [
-        0.65,
-        0.65
-      ]
+        0.6823,
+        0.5795
+      ],
+      "acc_std": 0.101,
+      "auc_std": 0.129
     }
   },
-  "ensemble_accepted": true,
-  "acceptance_reason": "ensemble LOSO Macro F1=0.4431 > hybrid 0.3642; min mean class recall=0.334",
-  "significance": {
-    "hybrid_vs_fnirs_f1": {
-      "comparison": "Hybrid vs fNIRS-only (Macro F1)",
-      "mean_a": 0.3642086523228384,
-      "mean_b": 0.41264563013862365,
-      "mean_diff": -0.04843697781578522,
-      "t_stat": -2.008101648364531,
-      "t_p": 0.05555327296572322,
-      "wilcoxon_stat": 96.0,
-      "wilcoxon_p": 0.04346644878387451,
-      "n": 26
-    },
-    "hybrid_vs_fnirs_auc": {
-      "comparison": "Hybrid vs fNIRS-only (AUC)",
-      "mean_a": 0.6010988678472339,
-      "mean_b": 0.6117186190715602,
-      "mean_diff": -0.010619751224326405,
-      "t_stat": -0.49088473699489044,
-      "t_p": 0.6277894460130782,
-      "wilcoxon_stat": 163.0,
-      "wilcoxon_p": 0.7508737107887603,
-      "n": 26
-    },
-    "normalized_vs_nonnormalized_f1": {
-      "comparison": "Normalized vs Non-normalized Hybrid (Macro F1)",
-      "mean_a": 0.3642086523228384,
-      "mean_b": 0.284075156533673,
-      "mean_diff": 0.08013349578916543,
-      "t_stat": 3.100842205866503,
-      "t_p": 0.004732844432124637,
-      "wilcoxon_stat": 65.0,
-      "wilcoxon_p": 0.0039003193378448486,
-      "n": 26
-    },
-    "normalized_vs_nonnormalized_auc": {
-      "comparison": "Normalized vs Non-normalized Hybrid (AUC)",
-      "mean_a": 0.6010988678472339,
-      "mean_b": 0.5522072789229652,
-      "mean_diff": 0.04889158892426864,
-      "t_stat": 1.9811191805023853,
-      "t_p": 0.05867901158388246,
-      "wilcoxon_stat": 119.0,
-      "wilcoxon_p": 0.15736517310142517,
-      "n": 26
+  "ensemble_accepted": false,
+  "acceptance_reason": "Baseline (Hybrid alone) retained as the served config: 42 controlled experiments (DANN variants, data-augmentation axes) were evaluated against it on 18-fold development LOSO and none cleared the one-standard-error acceptance bar. The legacy Random Forest ensemble is disabled in serving - the Hybrid network alone outperforms it, so this bundle serves Hybrid-only predictions.",
+  "lockbox": {
+    "hybrid": {
+      "f1_mean": 0.6275,
+      "f1_std": 0.093,
+      "acc_mean": 0.6371,
+      "acc_std": 0.085,
+      "auc_mean": 0.6888,
+      "auc_std": 0.111
     }
-  }
+  },
+  "per_class": {
+    "Low": {
+      "precision": 0.6187,
+      "recall": 0.6823,
+      "f1": 0.6489,
+      "specificity": 0.5795,
+      "support": 2288
+    },
+    "High": {
+      "precision": 0.6459,
+      "recall": 0.5795,
+      "f1": 0.6109,
+      "specificity": 0.6823,
+      "support": 2288
+    }
+  },
+  "per_subject_summary": {
+    "protocol": "26-fold LOSO, all subjects",
+    "n_subjects": 26,
+    "mean_accuracy": 0.6309,
+    "best": {
+      "subject_id": 17,
+      "windows": 176,
+      "accuracy": 0.807
+    },
+    "worst": {
+      "subject_id": 12,
+      "windows": 176,
+      "accuracy": 0.449
+    },
+    "note": "Per-subject accuracy varies widely around the population mean (e.g. one subject reaches 80.7%, another falls to 44.9%) - the model estimates population-level reliability, not a personalized guarantee for any one person."
+  },
+  "source": "RESULTS_BINARY_IMPROVEMENT.md (26-fold LOSO + 8-subject lockbox, run_20260820_141126_19cb)"
 }

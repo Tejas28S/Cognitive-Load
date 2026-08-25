@@ -15,8 +15,11 @@ import { MODALITY_COLORS, fmt } from "../constants";
 const loadAll = (version) =>
   Promise.all([
     getConfusion("hybrid", version),
-    getConfusion("eeg", version),
-    getConfusion("fnirs", version),
+    // The single-modality matrices only exist for the 3-class bundle; the
+    // binary campaign never produced them. Tolerate their absence rather than
+    // failing the whole page - the panels below hide themselves instead.
+    getConfusion("eeg", version).catch(() => null),
+    getConfusion("fnirs", version).catch(() => null),
     getShap(version),
     getAttention(version),
     getMetrics(version),
@@ -31,11 +34,17 @@ const loadAll = (version) =>
     diagnostics,
   }));
 
-const LOSO_ROWS = [
+const LOSO_ROWS_3CLASS = [
   { key: "fnirs_only", label: "fNIRS-only" },
   { key: "hybrid", label: "Hybrid (EEG + fNIRS)" },
   { key: "hybrid_non_normalized", label: "Hybrid, no per-subject norm" },
   { key: "ensemble_hybrid_rf", label: "Hybrid + RF ensemble - served live" },
+];
+// The binary bundle serves the Hybrid network alone (the legacy RF ensemble
+// is disabled - Hybrid alone outperforms it), so there is no multi-config
+// comparison for it, just the one served configuration.
+const LOSO_ROWS_BINARY = [
+  { key: "hybrid", label: "Hybrid (EEG + fNIRS) - served live" },
 ];
 
 export default function ModelInsights() {
@@ -45,12 +54,18 @@ export default function ModelInsights() {
   if (error) return <div className="container"><ErrorBox error={error} /></div>;
 
   const { hybrid, eeg, fnirs, shap, attention, metrics, diagnostics } = data;
+  const hasModalityMatrices = Boolean(eeg && fnirs);
   const loso = metrics?.loso || {};
+  const isBinary = version === "binary";
+  const LOSO_ROWS = isBinary ? LOSO_ROWS_BINARY : LOSO_ROWS_3CLASS;
   const bestF1 = Math.max(...LOSO_ROWS.map((r) => loso[r.key]?.f1_mean ?? 0));
   const chartRows = LOSO_ROWS.map((r) => ({
     ...r,
-    served: r.key === "ensemble_hybrid_rf",
+    served: isBinary ? r.key === "hybrid" : r.key === "ensemble_hybrid_rf",
   }));
+  const recallInitials = (classNames?.length ? classNames : ["Low", "Medium", "High"])
+    .map((c) => c[0])
+    .join(", ");
 
   return (
     <div className="container">
@@ -67,9 +82,9 @@ export default function ModelInsights() {
       <div className="card" style={{ marginBottom: 20 }}>
         <h2>LOSO configuration comparison (26 folds)</h2>
         <p className="card-sub">
-          Cross-subject (unseen-person) means. The Hybrid + RF ensemble is what
-          the live demo serves - the strongest reported configuration. The
-          Hybrid network alone and fNIRS-only are kept as comparison points.
+          {isBinary
+            ? "Cross-subject (unseen-person) mean, 26-fold LOSO. This bundle serves the Hybrid network alone - the legacy Random Forest ensemble is disabled in serving because Hybrid alone outperforms it."
+            : "Cross-subject (unseen-person) means. The Hybrid + RF ensemble is what the live demo serves - the strongest reported configuration. The Hybrid network alone and fNIRS-only are kept as comparison points."}
         </p>
         <div className="grid grid-2" style={{ marginBottom: 18, alignItems: "start" }}>
           <Figure num="1" title="Macro F1 by configuration, with ±1 fold std." source="metrics.json">
@@ -87,7 +102,7 @@ export default function ModelInsights() {
                 <th>Macro F1</th>
                 <th>Accuracy</th>
                 <th>AUC</th>
-                <th>Recall [L, M, H]</th>
+                <th>Recall [{recallInitials}]</th>
               </tr>
             </thead>
             <tbody>
@@ -110,25 +125,39 @@ export default function ModelInsights() {
             </tbody>
           </table>
         </div>
+        {!isBinary && (
         <div className="note info" style={{ marginTop: 14 }}>
           Against the original "multimodality wins" hypothesis, the Hybrid
           network alone does <strong>not</strong> beat fNIRS-only on unseen
           subjects. Only the Hybrid + Random Forest ensemble pulls clearly ahead.
         </div>
+        )}
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
-        <h2>Confusion matrices (fixed-split test set)</h2>
+        <h2>Confusion matrix{hasModalityMatrices ? "es" : ""}</h2>
         <p className="card-sub">
-          Hybrid vs. each single-modality baseline. The Hybrid keeps a usable
-          diagonal across all three classes; EEG-only collapses toward the
-          extremes.
+          {hasModalityMatrices
+            ? "Hybrid vs. each single-modality baseline. The Hybrid keeps a usable diagonal across all three classes; EEG-only collapses toward the extremes."
+            : `Rows are the true class, columns the predicted one. Pooled over every held-out window of the ${hybrid.labels?.length ?? ""}-class LOSO evaluation.`}
         </p>
-        <div className="grid grid-3">
+        <div className={hasModalityMatrices ? "grid grid-3" : "grid"}>
           <ConfusionMatrixChart matrix={hybrid.matrix} title="Hybrid (EEG + fNIRS)" classNames={hybrid.labels || classNames || undefined} />
-          <ConfusionMatrixChart matrix={eeg.matrix} title="EEG only" classNames={eeg.labels || classNames || undefined} />
-          <ConfusionMatrixChart matrix={fnirs.matrix} title="fNIRS only" classNames={fnirs.labels || classNames || undefined} />
+          {eeg && (
+            <ConfusionMatrixChart matrix={eeg.matrix} title="EEG only" classNames={eeg.labels || classNames || undefined} />
+          )}
+          {fnirs && (
+            <ConfusionMatrixChart matrix={fnirs.matrix} title="fNIRS only" classNames={fnirs.labels || classNames || undefined} />
+          )}
         </div>
+        {!hasModalityMatrices && (
+          <div className="note plain" style={{ marginTop: 14, fontSize: "0.85rem" }}>
+            Single-modality (EEG-only / fNIRS-only) confusion matrices are not
+            shown: they were only ever computed for the legacy 3-class study,
+            and showing those here would attribute another model's errors to
+            this one.
+          </div>
+        )}
       </div>
 
       <div className="grid grid-2" style={{ marginBottom: 20 }}>

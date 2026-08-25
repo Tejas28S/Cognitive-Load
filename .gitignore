@@ -45,3 +45,8 @@ test_data/synthetic/*.csv
 # The raw + extracted TU Berlin data (9.3 GB). Referenced from data/ by symlink;
 # never committed. See explanation/PROJECT_RECORD.md for how to point data/ at it.
 ZDATASET/
+
+# Playwright smoke-test artifacts (traces, screenshots, reports)
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/

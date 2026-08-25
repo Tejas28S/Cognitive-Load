@@ -2,15 +2,24 @@
 
 A hybrid deep-learning model that fuses **EEG** (electrical) and **fNIRS**
 (hemodynamic) brain signals from the Tu Berlin open dataset to estimate mental
-workload as **Low / Medium / High**, plus a demo web app (FastAPI + React) that
-serves the final model (a frozen Hybrid network + Random Forest ensemble) and
+workload, plus a demo web app (FastAPI + React) that serves the frozen model and
 its evaluation artifacts.
+
+Two labelling regimes exist. The **binary** model (Low vs High) is what is
+served today — a frozen Hybrid network alone; the Random Forest ensemble is
+disabled for this bundle because the Hybrid outperforms it. The original
+**3-class** model (Low / Medium / High) is kept in `serving_3class/` as a
+historical comparison, and there the Hybrid + RF ensemble *was* accepted.
 
 The headline result is as much methodological as it is a model: cross-subject
 (leave-one-subject-out) performance is meaningfully lower than a fixed
 train/test split suggests, because a fixed split leaks subject identity. Both
 numbers are always reported together — see [`RESULTS.md`](RESULTS.md) and the
 app's **Methodology** page.
+
+For the current state of the work — headline numbers, the full 58-configuration
+search history and what is still open — see
+[`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 
 ## Repository structure
 
@@ -39,14 +48,20 @@ cognitive_load/
 │   ├── archs.py              # model zoo: MLP + 1D-CNN encoders, fusion, DANN
 │   ├── train.py, metrics.py, plots.py, explain.py, experiment.py, campaign.py
 │   └── runctx.py             # the run archive (unique dirs, never overwritten)
-├── run_campaign.py           # the binary-model improvement campaign (CLI)
+├── run_campaign.py           # the original 42-experiment binary campaign (CLI)
+├── target_campaign.py        # 15 follow-up candidates probing axes the 42 never touched
+├── finalize_winner.py        # promote ONE dev winner to 26-fold LOSO + lockbox, paired vs a same-run baseline
+├── ensemble_campaign.py      # 5-member deep-ensemble screen (--stage dev | final)
+├── export_binary_reliability.py  # parse RESULTS_BINARY_IMPROVEMENT.md -> extra serving metrics keys
 ├── outputs/runs/             # per-run archive: metrics, predictions, figures, models
+│   └── target_campaign_log.md    # one row per attempt, win or lose
 ├── backend/                  # FastAPI serving API (Part 3); upload_service.py = CSV upload
 │   └── runs_service.py       # read-only access to outputs/runs/ for the API
 ├── frontend/                 # React + Vite demo UI (Part 4)
 ├── test_data/synthetic/      # synthetic upload fixtures (CSVs gitignored; README + generator tracked)
 ├── RESULTS.md                # full results + methodology narrative
 ├── RESULTS_BINARY_IMPROVEMENT.md    # measured results of the binary-model campaign
+├── PROJECT_STATUS.md         # current state: headline numbers, search history, what's open
 ├── explanation/              # project, API and methodology write-ups
 │   ├── PROJECT_RECORD.md     # the complete record: architecture, every experiment, all results
 │   └── *.pdf                 # every document as PDF (research/make_pdf.py)
@@ -116,6 +131,37 @@ unaffected.
 .venv/bin/python run_campaign.py --quick --limit-subjects 7 --n-lockbox 3 --max-epochs 6
 ```
 
+Two later campaigns extend the search using the same framework and the same
+acceptance rule:
+
+```bash
+# 15 follow-up candidates on axes the original 42 never touched (joint changes,
+# intermediate capacity points, batch 32, shorter early-stop patience).
+.venv/bin/python target_campaign.py
+
+# Promote ONE dev-screen winner to the headline protocol (26-fold LOSO +
+# lockbox). Re-runs the untouched baseline through the same two protocols in the
+# same environment, so the comparison is paired and free of cross-run noise.
+.venv/bin/python finalize_winner.py --candidate D2_narrow_patience6
+
+# Deep-ensemble screen: 5 independently-seeded copies of the served architecture
+# per fold, softmax-averaged. Mechanistically distinct from every prior attempt.
+.venv/bin/python ensemble_campaign.py --stage dev
+.venv/bin/python ensemble_campaign.py --stage final
+```
+
+**Where the search stands: 58 configurations, no accepted improvement.** The 42
+original experiments and the 15 target candidates were all rejected. The best
+target candidate (`D2_narrow_patience6`) was promoted to the full protocol and
+*lost* to the baseline on both 26-fold LOSO and the lockbox, with no result
+significant — a direct demonstration that a development-screen win can evaporate
+on the headline protocol. The 5-member deep ensemble is the only candidate to
+clear the one-standard-error bar on the development screen (accuracy 0.6632 vs
+the in-run baseline's 0.6304); it has **not** been promoted or served, and it
+carries real caveats — thin margins, a worse per-class balance, and a wider
+train−heldout gap. Full accounting in [`PROJECT_STATUS.md`](PROJECT_STATUS.md)
+and `outputs/runs/target_campaign_log.md`.
+
 Key properties:
 
 - **Development / lockbox split.** 18 subjects drive every experiment and every
@@ -139,8 +185,9 @@ Results are browsable at `/evaluation` and `/runs` in the app.
   them all with `.venv/bin/python -m research.make_pdf --all` (needs the
   `pandoc` binary and the `weasyprint` package).
 - Full detail in text: [`explanation/PROJECT_RECORD.md`](explanation/PROJECT_RECORD.md) —
-  architecture, protocol, leakage audit, all 42 experiments, final results and
-  limitations.
+  architecture, protocol, leakage audit, all 42 experiments of the original
+  campaign, final results and limitations. The later target and ensemble
+  campaigns are recorded in [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
 - Methodology only: [`explanation/BINARY_MODEL_IMPROVEMENT.md`](explanation/BINARY_MODEL_IMPROVEMENT.md)
 - Machine-generated numbers: [`RESULTS_BINARY_IMPROVEMENT.md`](RESULTS_BINARY_IMPROVEMENT.md)
 
@@ -167,10 +214,36 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. The seven pages — Overview, **Research** (a
-long-form dossier of the thesis, model, protocol taxonomy, the novel DANN
-contribution, and the decision-gate results), Live Prediction, Session Trend,
-Upload Data, Model Insights, Methodology — all read live data from the backend.
+Open <http://localhost:5173> (use `localhost`, not `127.0.0.1` — Vite binds the
+hostname, which resolves to IPv6). Every page reads live data from the backend:
+
+| Route | Page | What it is |
+|---|---|---|
+| `/` | Landing | Full-viewport opening + project abstract |
+| `/overview` | Overview | Headline result and model comparison |
+| `/workflow` | **Workflow** | The research pipeline in six stages, with a scroll-tracked progress rail |
+| `/methodology` | Methodology | Protocol, calibration and honest limitations |
+| `/research` | **Research** | Long-form dossier: thesis, protocol taxonomy, the novel DANN contribution, decision gates |
+| `/live`, `/session`, `/upload` | Assess | Single prediction, session playback, CSV batch prediction |
+| `/insights`, `/evaluation`, `/runs` | Evidence | Confusion/SHAP/attention, full run metrics, the run archive |
+| `/about`, `/bios`, `/faq` | About | Motivation and principles, team, plain-language answers |
+
+> `/bios` ships **placeholder** team entries and shows a warning banner until
+> they are filled in at `frontend/src/lib/team.ts` — names and affiliations are
+> the one thing on the site that cannot be derived from the repository.
+
+### 3. Smoke tests (optional)
+
+With both processes running:
+
+```bash
+cd frontend
+npx playwright install chromium   # first time only
+npm test
+```
+
+Mounts every route in a real browser and fails on uncaught exceptions, React
+errors, unexpected failed requests, or any page that scrolls sideways at 375px.
 
 The Research page's charts read a consolidated `serving/frontend_data/research.json`
 (the DANN / HbR / protocol / classical-sweep artifacts) via `GET /api/research/summary`.

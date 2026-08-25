@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import TrendChart from "../components/TrendChart";
+import SessionTimeline from "../components/SessionTimeline";
 import ExportMenu from "../components/ExportMenu";
 import { getSubjects, predictSession } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
@@ -91,9 +91,15 @@ export default function SessionTrend() {
                   predicted_label: w.predicted_label,
                   true_label: w.true_label_name,
                   correct: w.predicted_index === w.true_label ? 1 : 0,
-                  p_low: w.probabilities?.Low,
-                  p_medium: w.probabilities?.Medium,
-                  p_high: w.probabilities?.High,
+                  // One probability column per class the served model actually
+                  // reports. Hardcoding Low/Medium/High emitted two empty
+                  // columns for the binary bundle.
+                  ...Object.fromEntries(
+                    Object.entries(w.probabilities || {}).map(([k, v]) => [
+                      `p_${k.toLowerCase()}`,
+                      v,
+                    ])
+                  ),
                 }))}
                 jsonData={session}
                 filename={stampFilename(["session", `subject-${activeSubject}`])}
@@ -102,13 +108,14 @@ export default function SessionTrend() {
           </div>
           <div style={{ height: 14 }} />
           <div ref={chartRef}>
-            <TrendChart classNames={classNames || undefined} session={session} />
+            <SessionTimeline classNames={classNames || undefined} session={session} />
           </div>
           <div className="note" style={{ marginTop: 16 }}>
-            The shaded band marks a literature-informed sustained-engagement
-            range (Yerkes–Dodson): too-low suggests under-engagement, too-high
-            suggests fatigue / error risk. It is informational context, not a
-            diagnosis or a hard target.
+            Read the top two lanes together: where they match, the model agreed
+            with the ground truth. The error lane marks every window it got
+            wrong, and the confidence trace below shows how sure it was. These
+            are demo windows chosen for coherent playback, not a fresh
+            recording, and none of this is a diagnosis.
           </div>
         </div>
       )}

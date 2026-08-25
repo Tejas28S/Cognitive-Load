@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useApi, Loading, ErrorBox } from "../useApi";
-import { useModelVersion } from "../lib/modelVersion";
 import { getResearch, getMetrics, getShap, getAttention } from "../api/client";
 import { COMPARE_COLORS } from "../constants";
 import SignalTrace from "../components/SignalTrace";
@@ -37,18 +36,16 @@ const f3 = (x) => (x == null ? "-" : Number(x).toFixed(3));
 const signed = (x, d = 4) => (x == null ? "-" : `${x >= 0 ? "+" : ""}${Number(x).toFixed(d)}`);
 
 export default function Research() {
-  const { version } = useModelVersion();
+  // Pinned to the 3-class bundle: this page narrates that fixed study and must not drift with the binary/3-class toggle.
   const { data, loading, error } = useApi(async () => {
     const [research, metrics, shap, attention] = await Promise.all([
-      // research.json is a project-level dossier, only packaged in the binary
-      // bundle; fall back so selecting 3-class does not blank this page.
-      getResearch(version).catch(() => getResearch("binary")),
-      getMetrics(version),
-      getShap(version),
-      getAttention(version),
+      getResearch("3class").catch(() => getResearch("binary")),
+      getMetrics("3class"),
+      getShap("3class"),
+      getAttention("3class"),
     ]);
     return { research, metrics, shap, attention };
-  }, [version]);
+  }, []);
 
   return (
     <>
@@ -63,7 +60,11 @@ export default function Research() {
             Every claim here is judged by the same rule the project applied to its
             own model: adopt a change only when it clears a paired-significance
             decision gate. That discipline - and the rigorous negative results it
-            produced - is the contribution.
+            produced - is the contribution. This dossier documents the original
+            3-class study; the binary (Low vs High) model built on the same
+            discipline is the project's current work, browsable with every run's
+            full artifact trail on the <Link to="/evaluation">Evaluation</Link>{" "}
+            and <Link to="/runs">Runs</Link> pages.
           </p>
           <SignalTrace className="hero-signal" height={54} strokeWidth={2.4} animate glow />
         </div>

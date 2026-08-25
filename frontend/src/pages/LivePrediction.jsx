@@ -4,6 +4,7 @@ import ModalityContribution from "../components/ModalityContribution";
 import UncertaintyPanel from "../components/UncertaintyPanel";
 import ConfidenceGauge from "../components/ConfidenceGauge";
 import ExportMenu from "../components/ExportMenu";
+import PredictionReport from "../components/PredictionReport";
 import { getSubjects, predict } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
 import { useModelVersion, bundleLabel } from "../lib/modelVersion";
@@ -85,6 +86,8 @@ function PredictionResultPanel({ title, result, version, classNames }) {
             />
         </div>
       </div>
+
+      <PredictionReport result={result} classNames={classNames} label={title} version={version} />
     </div>
   );
 }

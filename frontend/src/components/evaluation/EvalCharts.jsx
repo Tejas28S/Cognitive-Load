@@ -29,7 +29,7 @@ const tooltipStyle = {
 };
 
 const n = (v, d = 4) =>
-  v === null || v === undefined || Number.isNaN(v) ? "—" : Number(v).toFixed(d);
+  v === null || v === undefined || Number.isNaN(v) ? "-" : Number(v).toFixed(d);
 
 // ── ROC ────────────────────────────────────────────────────────────────────
 export function RocChart({ curves }) {

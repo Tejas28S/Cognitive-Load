@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { getMetrics, getDiagnostics } from "../api/client";
 import { useApi, Loading, ErrorBox } from "../useApi";
 import { useModelVersion } from "../lib/modelVersion";
@@ -29,7 +30,7 @@ const loadAll = (version) =>
   ]).then(([metrics, diagnostics]) => ({ metrics, diagnostics }));
 
 export default function Methodology() {
-  const { version } = useModelVersion();
+  const { version, classNames } = useModelVersion();
   const { data, loading, error } = useApi(() => loadAll(version), [version]);
   if (loading) return <div className="container"><Loading /></div>;
   if (error) return <div className="container"><ErrorBox error={error} /></div>;
@@ -38,6 +39,8 @@ export default function Methodology() {
   const sig = metrics?.significance || {};
   const accepted = metrics?.ensemble_accepted;
   const reason = metrics?.acceptance_reason;
+  const classes = classNames?.length ? classNames : version === "3class" ? ["Low", "Medium", "High"] : ["Low", "High"];
+  const classPhrase = classes.join(", ").replace(/, ([^,]*)$/, " or $1");
 
   return (
     <div className="container">
@@ -56,8 +59,8 @@ export default function Methodology() {
         <p>
           Given short windows of simultaneously-recorded EEG (electrical) and
           fNIRS (hemodynamic) brain activity from the Tu Berlin open dataset (26
-          subjects), classify the person's mental workload into Low, Medium, or
-          High. Multimodality is the bet: EEG is fast but noisy, fNIRS is slow but
+          subjects), classify the person's mental workload into {classPhrase}.
+          Multimodality is the bet: EEG is fast but noisy, fNIRS is slow but
           stable, and a fusion model should lean on whichever is more informative.
         </p>
       </Reveal>
@@ -83,6 +86,7 @@ export default function Methodology() {
         </p>
       </Reveal>
 
+      {Object.keys(sig).length > 0 && (
       <Reveal className="card" style={{ marginBottom: 20 }}>
         <h2>Statistical significance (paired across 26 LOSO folds)</h2>
         <p className="card-sub">
@@ -105,6 +109,20 @@ export default function Methodology() {
           fusion story.
         </p>
       </Reveal>
+      )}
+      {Object.keys(sig).length === 0 && (
+      <Reveal className="card" style={{ marginBottom: 20 }}>
+        <h2>Statistical significance</h2>
+        <p>
+          The paired-significance battery above belongs to the original 3-class
+          study. The binary campaign's decision-gate results - 42 experiments
+          selected by a one-standard-error rule against an 18-subject
+          development pool, verified on an 8-subject lockbox - are on the{" "}
+          <Link to="/evaluation">Evaluation</Link> and <Link to="/runs">Runs</Link>{" "}
+          pages, sourced directly from the run archive.
+        </p>
+      </Reveal>
+      )}
 
       {diagnostics && (
         <Reveal className="card" style={{ marginBottom: 20 }}>
@@ -164,7 +182,7 @@ export default function Methodology() {
             as a finding, not adopted.
           </VerdictCallout>
           <VerdictCallout tone={accepted ? "ok" : "warn"} stamp={accepted ? "Adopted" : "Evaluated"} title="Hybrid + Random Forest ensemble">
-            <span className="mono">{reason}</span>
+            <span>{reason}</span>
           </VerdictCallout>
         </div>
       </Reveal>

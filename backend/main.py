@@ -343,6 +343,7 @@ async def predict_upload(file: UploadFile = File(...), version: str = Query("bin
             "predicted_index": r["predicted_index"],
             "probabilities": r["probabilities"],
             "attention_weights": r["attention_weights"],
+            "uncertainty": r["uncertainty"],
             "true_label": true_idx,
             "true_label_name": SHORT[true_idx] if true_idx is not None and 0 <= true_idx < len(SHORT) else None,
         })
@@ -353,7 +354,8 @@ async def predict_upload(file: UploadFile = File(...), version: str = Query("bin
         accuracy = correct / len(rows) if rows else None
 
     return {
-        "served_model": "hybrid_rf_ensemble",
+        "served_model": model_service.served_model,
+        "served_model_label": model_service.served_model_label,
         "normalization": norm_mode,
         "normalization_note": (
             "Per-subject normalization applied using each subject's own uploaded "
@@ -417,12 +419,14 @@ async def predict_upload_mat(
             "predicted_index": r["predicted_index"],
             "probabilities": r["probabilities"],
             "attention_weights": r["attention_weights"],
+            "uncertainty": r["uncertainty"],
             "true_label": None,
             "true_label_name": None,
         })
 
     return {
-        "served_model": "hybrid_rf_ensemble",
+        "served_model": model_service.served_model,
+        "served_model_label": model_service.served_model_label,
         "normalization": norm_mode,
         "normalization_note": "Extracted directly from .mat files. Per-subject normalization applied.",
         "summary": {
@@ -532,15 +536,58 @@ def run_training_history(run_id: str):
         run_id, "curves/training_history.json", "training history")
 
 
+# Experiment directories that can hold a full 26-fold LOSO evaluation, in the
+# order we prefer them. run_campaign.py writes FINAL_loso26; finalize_winner.py
+# writes CANDIDATE_loso26 + BASELINE_loso26 instead, so hardcoding the first
+# name left every promotion run reporting an empty per-subject list.
+#
+# BASELINE outranks CANDIDATE deliberately. A promotion run evaluates a
+# candidate that may well have been *rejected* (as D2 was), and the baseline is
+# what stays served in that case — so the baseline's folds are the honest
+# default. Callers who want the candidate's folds ask for them by name.
+LOSO26_EXPERIMENTS = ("FINAL_loso26", "BASELINE_loso26", "CANDIDATE_loso26")
+
+
 @app.get("/api/runs/{run_id}/per-subject")
-def run_per_subject(run_id: str):
+def run_per_subject(
+    run_id: str,
+    experiment: str = Query(
+        None,
+        description=f"Which LOSO experiment's folds to read. One of {LOSO26_EXPERIMENTS}.",
+    ),
+):
     """Per-subject held-out performance, read from the LOSO metrics artifact."""
     loso = _artifact_or_404(run_id, "metrics/loso_metrics.json", "LOSO metrics")
     summary = runs_service.try_read(run_id, "run_summary.json", {}) or {}
     exp_id = (summary.get("model") or {}).get("selected_experiment")
-    rows = runs_service.try_read(run_id, "experiments/FINAL_loso26/per_subject_metrics.json")
+
+    if experiment and experiment not in LOSO26_EXPERIMENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"unknown experiment {experiment!r}; choose from {list(LOSO26_EXPERIMENTS)}",
+        )
+    order = (experiment,) if experiment else LOSO26_EXPERIMENTS
+
+    rows, source_exp = None, None
+    for candidate in order:
+        rows = runs_service.try_read(
+            run_id, f"experiments/{candidate}/per_subject_metrics.json"
+        )
+        if rows:
+            source_exp = candidate
+            break
+
     return {
         "per_subject": rows or [],
+        # Which experiment the rows actually came from, so the UI can label a
+        # promoted candidate's folds distinctly from the paired baseline's
+        # rather than presenting either as "the model" without qualification.
+        "per_subject_experiment": source_exp,
+        "available_experiments": [
+            e
+            for e in LOSO26_EXPERIMENTS
+            if runs_service.has(run_id, f"experiments/{e}/per_subject_metrics.json")
+        ],
         "fold_aggregate": loso.get("fold_aggregate"),
         "protocol": loso.get("protocol"),
         "lockbox": loso.get("lockbox"),

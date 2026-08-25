@@ -1,0 +1,164 @@
+/* ============================================================================
+   Tailwind entry, "Laboratory Signal Record"
+
+   Layer order is declared explicitly so the legacy hand-written stylesheet
+   (index.css, ~2k lines, still styling the not-yet-migrated pages) sits BETWEEN
+   Tailwind's preflight and Tailwind's utilities. Without this, index.css is
+   unlayered and would beat every utility class regardless of specificity,
+   an `h2 {}` rule there would silently override `text-2xl` on a Tailwind page.
+
+   With the order below: preflight → legacy → utilities, so utilities win and
+   the two systems coexist safely for the duration of the migration.
+   ========================================================================== */
+@layer theme, base, legacy, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "../index.css" layer(legacy);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../**/*.{js,jsx,ts,tsx}";
+
+/* Dark mode is driven by <html data-theme="dark"> (lib/theme.tsx), not by the
+   `class` strategy, so the `dark:` variant is redefined to match. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Theme tokens.
+
+   Colours deliberately REFERENCE the semantic custom properties defined in
+   index.css rather than restating their hex values. index.css is the single
+   source of truth for the palette, it is what the legacy CSS uses and what
+   lib/chartTheme.js reads at runtime via getComputedStyle to colour every
+   Recharts figure. Restating the hexes here would let the two drift.
+
+   The indirection also buys dark mode for free: index.css redefines those
+   semantic vars under [data-theme="dark"], so `bg-surface` resolves correctly
+   in both themes with no `dark:` variant needed.
+
+   Fonts and geometry are stated literally, they are identical in both themes,
+   and self-referencing a var (`--font-sans: var(--font-sans)`) would be a
+   cycle rather than an indirection.
+   ------------------------------------------------------------------------ */
+@theme {
+  /* Type — Spectral (display serif) · Inter (UI/body) · IBM Plex Mono (data) */
+  --font-display: "Spectral", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Card voice: more personality than the workhorse serif, none of the
+     typewriter stiffness the mono face gave card sub-copy. */
+  --font-card: "Fraunces Variable", "Fraunces", "Spectral", Georgia, serif;
+
+  /* Paper & ink */
+  --color-paper: var(--paper);
+  --color-paper-edge: var(--paper-edge);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+
+  /* Dark instrument band — hero / footer surfaces */
+  --color-deep: var(--ink-deep);
+  --color-deep-2: var(--ink-deep-2);
+  --color-on-deep: var(--on-deep);
+  --color-on-deep-2: var(--on-deep-2);
+
+  /* The two signal poles: indigo = EEG (electrical), cyan = fNIRS (hemodynamic) */
+  --color-eeg: var(--eeg);
+  --color-fnirs: var(--fnirs);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+
+  /* Cognitive-load class scale (colourblind-safe; mirrors constants.ts) */
+  --color-low: var(--low);
+  --color-medium: var(--medium);
+  --color-high: var(--high);
+
+  /* Decision-gate verdict stamps */
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-stop: var(--stop);
+
+  /* Modular type scale, 1.25 ratio off a 16px base, each with a deliberate
+     line-height. Display sizes are fluid so the hero holds its proportions
+     from 360px to 1600px without breakpoint jumps. Body sits at 1.65 per the
+     brief's 1.6–1.7 for long-form reading; display tightens to 1.05. */
+  --text-2xs: 0.6875rem; /* 11px, axis ticks, table micro-labels */
+  --text-2xs--line-height: 1.45;
+  --text-xs: 0.75rem; /* 12px, eyebrows, stamps, mono captions */
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem; /* 14px, card sub-copy, figure captions */
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem; /* 16px, body */
+  --text-base--line-height: 1.65;
+  --text-lg: 1.125rem; /* 18px, lede */
+  --text-lg--line-height: 1.6;
+  --text-xl: 1.375rem; /* 22px, h3 */
+  --text-xl--line-height: 1.3;
+  --text-2xl: 1.75rem; /* 28px, h2 */
+  --text-2xl--line-height: 1.2;
+  --text-3xl: clamp(2rem, 1.4rem + 2.6vw, 3.1rem); /* h1 */
+  --text-3xl--line-height: 1.1;
+  --text-4xl: clamp(2.6rem, 1.6rem + 4.4vw, 4.75rem); /* landing display */
+  --text-4xl--line-height: 1.02;
+
+  /* Geometry — mirrors the legacy --r-* scale */
+  --radius-xs: 6px;
+  --radius-sm: 9px;
+  --radius-md: 13px;
+  --radius-lg: 20px;
+
+  /* Motion — one confident easing curve, used everywhere */
+  --ease-signal: cubic-bezier(0.2, 0.65, 0.2, 1);
+
+  /* Measure */
+  --container-wrap: 1120px;
+  --container-wrap-wide: 1240px;
+}
+
+/* ---------------------------------------------------------------------------
+   Utilities the new pages lean on that Tailwind has no primitive for.
+   Named to avoid colliding with legacy class names in index.css (`.eyebrow`
+   already exists there and must keep its own styling).
+   ------------------------------------------------------------------------ */
+
+/* The small tracked-out mono label that opens a section. */
+@utility eyebrow-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Tabular figures — for every metric readout, so digits don't jitter on update. */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Hairline rule that reads as a lab-notebook divider rather than a box border. */
+@utility hairline {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+@layer base {
+  /* Respect the OS setting globally. Every Framer Motion transition in the app
+     is additionally authored to collapse to a no-op when this is on. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -11,6 +11,9 @@
   --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Card voice: Fraunces carries more personality than the workhorse serif,
+     without the typewriter stiffness the mono face gave card sub-copy. */
+  --font-card: "Fraunces Variable", "Fraunces", "Spectral", Georgia, serif;
 
   /* Paper & ink */
   --paper: #f5f6f9;
@@ -171,6 +174,12 @@ strong {
   font-family: var(--font-mono);
   font-size: 0.88em;
   font-variant-numeric: tabular-nums;
+  /* This class carries filesystem paths and run ids — single "words" with no
+     spaces that are wider than a phone. `anywhere` (not `break-word`) also
+     shrinks the element's min-content size, so it can't force a flex or grid
+     parent wider than the viewport. It only breaks strings that would
+     otherwise overflow, so short mono labels are unaffected. */
+  overflow-wrap: anywhere;
 }
 .muted {
   color: var(--ink-3);
@@ -212,7 +221,12 @@ strong {
   border-bottom: 1px solid var(--border);
 }
 .nav-inner {
-  max-width: var(--wrap-wide);
+  /* Wider than the reading measure (--wrap-wide) on purpose. The bar carries
+     brand + seven nav items + the model switch and tools; capping it at the
+     article width left nav-links ~70px short and silently scrolled the last
+     item out of sight on a 1440px screen. Chrome may use more width than the
+     prose it sits above. */
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
@@ -230,6 +244,14 @@ strong {
   font-size: 1.02rem;
   letter-spacing: -0.01em;
   color: var(--ink);
+}
+/* The wordmark beside the brand mark. Kept as a class (not an inline style)
+   so the narrow-viewport rules further down can shrink and then drop it. */
+.brand-word {
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .brand:hover {
   color: var(--ink);
@@ -255,6 +277,19 @@ strong {
   align-items: center;
   gap: 2px;
   margin-left: auto;
+  /* Always overflow-safe: if content doesn't fit at any width, it scrolls
+     inside the bar instead of clipping off the viewport edge. flex-shrink
+     needs min-width:0 to actually take effect on a flex child. */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.nav-links::-webkit-scrollbar {
+  display: none;
 }
 .nav-links a {
   color: var(--ink-2);
@@ -279,6 +314,81 @@ strong {
   height: 22px;
   background: var(--border-strong);
   margin: 0 6px;
+}
+
+/* ── Nav dropdown (Assess / Evidence) ───────────────────────────────────── */
+.nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.nav-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-2);
+  padding: 7px 11px;
+  border-radius: var(--r-sm);
+  font-size: 0.885rem;
+  font-weight: 500;
+  font-family: inherit;
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s;
+}
+.nav-dropdown-trigger:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+.nav-dropdown-trigger.active {
+  background: var(--surface);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-sm);
+}
+.nav-dropdown-caret {
+  font-size: 0.62rem;
+  opacity: 0.7;
+}
+.nav-dropdown-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+  padding: 5px;
+  animation: cmdk-pop 0.14s var(--ease);
+}
+.nav-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 11px;
+  border-radius: var(--r-xs);
+  color: var(--ink);
+}
+.nav-dropdown-item:hover {
+  background: var(--accent-soft);
+}
+.nav-dropdown-item.active {
+  background: var(--accent-soft);
+}
+.nav-dropdown-item-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.nav-dropdown-item.active .nav-dropdown-item-label {
+  color: var(--accent-ink);
+}
+.nav-dropdown-item-hint {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
 }
 
 .container {
@@ -331,16 +441,36 @@ strong {
   border-radius: var(--r);
   box-shadow: var(--shadow);
   padding: 22px;
+  /* Every card lifts on hover. Transform + shadow only (never a layout
+     property) so the animation stays on the compositor and can't reflow the
+     page under the cursor. */
+  transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease),
+    border-color 0.22s var(--ease);
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transform: none;
+  }
 }
 .card h2,
-.card h3 {
+.card h3,
+.card h4 {
   margin-top: 0;
+  font-family: var(--font-card);
 }
+/* Card sub-copy. Was IBM Plex Mono, which read as a typewriter caption; the
+   card face is warmer and sits better under a card heading. */
 .card-sub {
   color: var(--ink-3);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   margin: -2px 0 18px;
-  font-family: var(--font-mono);
+  font-family: var(--font-card);
+  font-style: italic;
   letter-spacing: 0.01em;
 }
 .card-flat {
@@ -466,15 +596,16 @@ button.btn-ghost:hover {
   font-size: 0.8rem;
   font-weight: 600;
 }
+/* Colour-key entry. The border + filled capsule made this look like a
+   clickable control; it is a legend, so it now reads as a swatch and a word. */
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  font-size: 0.78rem;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.82rem;
   font-weight: 500;
   color: var(--ink-2);
 }
@@ -644,56 +775,56 @@ table.data tr.is-best td {
 }
 
 /* ── Verdict stamp (decision-gate outcome) ──────────────────────────────── */
+/* Decision-gate outcome card.
+   The verdict used to be carried by a 4px coloured left border plus a boxed,
+   badge-like stamp. Both are gone: the card is now a plain surface that lifts
+   on hover like every other card, the stamp is set as quiet tracked text at the
+   top of the card, and colour is carried by that text alone. */
 .verdict {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px 18px;
-  align-items: start;
+  display: block;
   border: 1px solid var(--border);
-  border-left-width: 4px;
   border-radius: var(--r);
   background: var(--surface);
-  padding: 18px 20px;
+  padding: 20px;
   box-shadow: var(--shadow-sm);
+  transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease),
+    border-color 0.22s var(--ease);
 }
-.verdict--ok {
-  border-left-color: var(--ok);
+.verdict:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
 }
-.verdict--warn {
-  border-left-color: var(--warn);
-}
-.verdict--stop {
-  border-left-color: var(--stop);
+@media (prefers-reduced-motion: reduce) {
+  .verdict:hover {
+    transform: none;
+  }
 }
 .verdict-stamp {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: var(--r-xs);
-  white-space: nowrap;
-  border: 1px solid currentColor;
+  margin: 0 0 12px;
 }
 .verdict--ok .verdict-stamp {
   color: var(--ok);
-  background: rgba(15, 118, 110, 0.07);
 }
 .verdict--warn .verdict-stamp {
   color: var(--warn);
-  background: rgba(180, 83, 9, 0.07);
 }
 .verdict--stop .verdict-stamp {
   color: var(--stop);
-  background: rgba(185, 28, 28, 0.06);
 }
 .verdict-title {
-  font-family: var(--font-display);
+  font-family: var(--font-card);
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.12rem;
+  line-height: 1.3;
   color: var(--ink);
-  margin: 1px 0 4px;
+  margin: 0 0 6px;
 }
 .verdict-body {
   font-size: 0.92rem;
@@ -701,30 +832,183 @@ table.data tr.is-best td {
   line-height: 1.6;
 }
 
+/* ── Prediction report (post-prediction workload-management summary) ────── */
+.report {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 22px;
+  margin-top: 20px;
+  transition: transform 0.22s var(--ease), box-shadow 0.22s var(--ease),
+    border-color 0.22s var(--ease);
+}
+.report:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .report:hover {
+    transform: none;
+  }
+}
+.report-head-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* Persistent notice — must survive into every export (PNG/PDF/JSON), not
+   just live in the footer, so it stays quiet but is never absent. */
+.report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.report-badge::before {
+  content: "●";
+  color: var(--warn);
+  font-size: 0.6rem;
+}
+.report-meta {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+.report-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: var(--r);
+  border-left: 4px solid var(--accent);
+}
+.report-verdict-main {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.report-verdict-class {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.report-verdict-reliability {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.report-section {
+  margin-top: 22px;
+}
+.report-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.report-list li {
+  position: relative;
+  padding: 8px 0 8px 22px;
+  border-top: 1px solid var(--border);
+  font-size: 0.92rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.report-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+/* Limitations read as caveats, not achievements — a dash, not a checkmark. */
+.report-list--plain li::before {
+  content: "–";
+  color: var(--ink-3);
+  font-weight: 600;
+}
+/* Model reliability: a quiet strip of real numbers, not a stat-card grid. */
+.report-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin-top: 12px;
+}
+.report-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.report-stat-num {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.report-stat-std {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.report-stat-label {
+  font-size: 0.76rem;
+  color: var(--ink-3);
+  max-width: 22ch;
+  line-height: 1.35;
+}
+.report-stat-note {
+  margin-top: 12px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+.report-disclaimer {
+  margin-top: 22px;
+  font-size: 0.82rem;
+}
+
 /* ── Dark instrument band (hero) ────────────────────────────────────────── */
+/* The hero band. Formerly a dark "instrument" panel; now a pale wash so the
+   hero belongs to the same light page as everything below it. The two signal
+   poles survive as faint tints (cyan = fNIRS top-right, indigo = EEG
+   bottom-left) rather than as a colour inversion. */
 .band-dark {
   background:
-    radial-gradient(120% 90% at 82% -10%, rgba(6, 182, 212, 0.16), transparent 60%),
-    radial-gradient(90% 80% at 8% 110%, rgba(99, 102, 241, 0.2), transparent 55%),
-    var(--ink-deep);
-  color: var(--on-deep);
+    radial-gradient(120% 90% at 82% -10%, rgba(6, 182, 212, 0.1), transparent 62%),
+    radial-gradient(90% 80% at 8% 110%, rgba(99, 102, 241, 0.11), transparent 58%),
+    var(--paper-edge);
+  color: var(--ink);
 }
 .band-dark h1,
 .band-dark h2,
 .band-dark h3 {
-  color: var(--on-deep);
+  color: var(--ink);
 }
 .band-dark p {
-  color: var(--on-deep-2);
+  color: var(--ink-2);
 }
 .band-dark .eyebrow {
-  color: var(--fnirs);
+  color: var(--accent-ink);
 }
 
 /* ── Full-bleed hero band ───────────────────────────────────────────────── */
 .page-hero {
   padding: 64px 0 60px;
-  border-bottom: 1px solid var(--on-deep-line);
+  border-bottom: 1px solid var(--border);
   overflow: hidden;
 }
 .hero-inner {
@@ -771,14 +1055,17 @@ table.data tr.is-best td {
   background: #4338ca;
   color: #fff;
 }
+/* Kept under its historical name so existing pages don't need touching, but
+   the band beneath it is light now, so it reads as a normal secondary button. */
 .btn-on-dark {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--on-deep);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
 }
 .btn-on-dark:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Hero metric row on the dark band */
@@ -788,7 +1075,7 @@ table.data tr.is-best td {
   flex-wrap: wrap;
   margin-top: 34px;
   padding-top: 26px;
-  border-top: 1px solid var(--on-deep-line);
+  border-top: 1px solid var(--border);
 }
 
 /* ── "What's different" teaser cards ────────────────────────────────────── */
@@ -815,16 +1102,20 @@ table.data tr.is-best td {
   color: var(--ink);
 }
 .teaser .teaser-stamp {
-  font-family: var(--font-mono);
+  display: block;
+  font-family: var(--font-sans);
   font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   font-weight: 600;
   color: var(--accent-ink);
+  margin-bottom: 10px;
 }
 .teaser h3 {
-  margin: 10px 0 6px;
-  font-size: 1.08rem;
+  margin: 0 0 6px;
+  font-family: var(--font-card);
+  font-size: 1.12rem;
+  line-height: 1.3;
 }
 .teaser p {
   font-size: 0.9rem;
@@ -833,8 +1124,9 @@ table.data tr.is-best td {
 .teaser .teaser-go {
   display: inline-block;
   margin-top: 12px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.82rem;
   color: var(--accent);
 }
 
@@ -981,19 +1273,10 @@ table.data tr.is-best td {
   /* Links scroll horizontally inside the bar instead of overflowing the page */
   .nav-links {
     gap: 0;
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
     justify-content: flex-start;
   }
-  .nav-links::-webkit-scrollbar {
-    display: none;
-  }
-  .nav-links a {
+  .nav-links a,
+  .nav-dropdown-trigger {
     padding: 7px 9px;
     font-size: 0.85rem;
   }
@@ -1427,7 +1710,29 @@ select,
   color: var(--ink);
 }
 
+/* ── Narrow-viewport nav ────────────────────────────────────────────────────
+   .nav-inner is a three-part flex row: brand | nav-links | nav-tools. Only
+   nav-links can shrink, so as the viewport narrows it is squeezed to width 0,
+   the links vanish entirely, and the row still overflows because the other
+   two are flex:none. Both symptoms have the same cause, so the fix is to make
+   the brand and the tools give ground first, and to floor nav-links at a width
+   where it stays usable (it scrolls internally). */
 @media (max-width: 720px) {
+  .nav-inner {
+    padding: 0 14px;
+    gap: 4px;
+  }
+  .brand {
+    margin-right: 10px;
+    min-width: 0;
+  }
+  .brand-word {
+    font-size: 1.05rem;
+  }
+  .nav-links {
+    /* Never let the links collapse to nothing; they scroll inside this width. */
+    min-width: 140px;
+  }
   .cmdk-hint-btn kbd {
     display: none;
   }
@@ -1436,6 +1741,24 @@ select,
   }
   .nav-tools {
     margin-left: 8px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* The wordmark goes, the mark stays — it is still a home link, and the page
+     title carries the identity from here down. */
+  .brand-word {
+    display: none;
+  }
+  .brand {
+    /* The mark is a waveform that runs to its own edge; it needs a little more
+       air than a boxed logo would before the first nav link. */
+    margin-right: 14px;
+  }
+  /* A keyboard shortcut affordance is dead weight on a touch device. */
+  .cmdk-hint-btn {
+    display: none;
   }
 }
 
@@ -1509,12 +1832,16 @@ select,
   color: var(--ink-2);
   min-width: 46px;
 }
+/* Significance marker. Was a bordered pill that read as a button; now it is
+   just weighted, tracked text in the verdict's colour. */
 .forest-badge {
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 0.66rem;
-  font-weight: 600;
-  border: 1px solid currentColor;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: none;
+  border: 0;
+  padding: 0;
 }
 .forest-badge.sig {
   color: var(--ok);
@@ -1802,24 +2129,26 @@ select,
 }
 
 /* Hero: the landing-page control, on the dark band. */
+/* Hero variant. The band it sits on is a light wash now, so these rules use
+   ink tokens; the previous white-on-white left the inactive option all but
+   invisible against the hero. */
 .model-switch--hero .model-switch-label {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--ink-3);
 }
 .model-switch--hero .model-switch-seg {
   padding: 4px;
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(4px);
+  border-color: var(--border-strong);
+  background: var(--surface);
 }
 .model-switch--hero .model-switch-opt {
   padding: 7px 16px;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--ink-2);
   gap: 2px;
 }
 .model-switch--hero .model-switch-opt:hover:not(.is-disabled):not(.is-active) {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--surface-2);
+  color: var(--ink);
 }
 .model-switch--hero .model-switch-opt.is-active {
   background: var(--accent);
