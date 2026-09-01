@@ -43,9 +43,12 @@ app = FastAPI(
 )
 
 # CORS for the Vite dev server.
+# Vite falls back to 5174, 5175, ... whenever its preferred port is taken, and a
+# fixed allowlist silently turns that into an opaque "Network Error" in the
+# browser. Match any localhost port instead; this app only ever runs locally.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_methods=["*"],
     allow_headers=["*"],
 )
