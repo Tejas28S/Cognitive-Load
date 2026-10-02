@@ -5,7 +5,7 @@ type RevealProps = {
   children: ReactNode;
   /** Render as a different element (section, li, figure...). Defaults to div. */
   as?: ElementType;
-  /** Seconds of delay — used to stagger siblings by hand where a container
+  /** Seconds of delay, used to stagger siblings by hand where a container
    *  variant isn't practical (e.g. across a CSS grid). */
   delay?: number;
   /** Travel distance in px. Small by default: motion should clarify that a new
@@ -19,7 +19,7 @@ type RevealProps = {
  * with a slight upward slide on the project's single easing curve.
  *
  * Honours prefers-reduced-motion by rendering the final state immediately
- * rather than by shortening the animation — a fast animation is still motion.
+ * rather than by shortening the animation: a fast animation is still motion.
  */
 export default function Reveal({
   children,

@@ -2,7 +2,7 @@ import { useModelVersion, bundleLabel } from "../lib/modelVersion";
 
 // Segmented control that picks which trained model the whole app talks to.
 // An unavailable bundle stays visible but disabled, with the backend's own
-// reason in the tooltip — a missing option the user can see and understand
+// reason in the tooltip: a missing option the user can see and understand
 // beats one that silently disappears.
 
 const ORDER = ["binary", "3class"];

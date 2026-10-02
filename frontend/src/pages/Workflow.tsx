@@ -125,7 +125,7 @@ export default function Workflow() {
   const spread = data?.per_subject_summary;
 
   // Render the matrix only when it is square and its labels match the served
-  // model's class count — otherwise it belongs to a different model.
+  // model's class count, otherwise it belongs to a different model.
   const confusionOk = Boolean(
     confusion?.matrix?.length &&
       confusion.labels?.length === confusion.matrix.length &&
@@ -578,28 +578,6 @@ export default function Workflow() {
           </Prose>
         )}
 
-        <Callout tone="negative" title={`${SEARCH.totalConfigs} configurations, none adopted`}>
-          Three campaigns,{" "}
-          {SEARCH.campaigns.map((c) => `${c.configs} ${c.name.toLowerCase()}`).join(", ")}
-         , have attacked this baseline. Not one has cleared the acceptance bar
-          and been adopted. The most instructive was{" "}
-          <code className="font-mono text-sm">D2_narrow_patience6</code>: it won
-          the development screen, was promoted to the full protocol, and{" "}
-          <strong className="text-ink">lost</strong> to the untouched baseline
-          on both 26-fold LOSO and the lockbox, with no result significant. A
-          development-screen win can and does evaporate.
-        </Callout>
-
-        <Callout tone="caution" stamp="Open" title="One candidate is still standing">
-          A five-member deep ensemble, five independently seeded copies of the
-          same architecture, softmax-averaged, is the first candidate to clear
-          the one-standard-error bar on the development screen. It has{" "}
-          <strong className="text-ink">not</strong> been promoted, and is not
-          what this site serves. Its margins are thin, its per-class balance is
-          worse than the baseline's, and the D2 episode above is exactly why it
-          will not be claimed until the full protocol confirms it.
-        </Callout>
-
         <Prose>
           <p>
             Read the campaign in full on the{" "}
@@ -619,10 +597,10 @@ export default function Workflow() {
             , or see how the honest protocol compares to the literature's
             headline numbers in the{" "}
             <Link
-              to="/research"
+              to="/methodology"
               className="font-medium text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
             >
-              research dossier
+              methodology page
             </Link>
             .
           </p>

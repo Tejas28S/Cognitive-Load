@@ -3,7 +3,7 @@ import { FEATURES } from "../../../lib/projectFacts";
 
 /**
  * What one model input actually contains: 1,476 numbers, and where they come
- * from. fNIRS contributes nearly twice what EEG does by count — worth showing,
+ * from. fNIRS contributes nearly twice what EEG does by count, worth showing,
  * because the explainability work (SHAP, attention, RF importance) independently
  * finds fNIRS carrying most of the signal, and a reader should be able to see
  * that the count alone doesn't explain that result.

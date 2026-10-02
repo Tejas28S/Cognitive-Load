@@ -36,6 +36,29 @@ from research.verify_run import verify
 from target_campaign import build_candidates, data_with, spec_with
 
 
+def all_candidates():
+    """Every candidate id this script can promote, across both campaigns.
+
+    gap_campaign.py runs the same protocol on the same dev split and writes to
+    the same log, so its winners are promotable through exactly this path. It is
+    imported lazily and tolerantly: if that module is absent the target campaign
+    still works on its own.
+    """
+    cands = dict(build_candidates())
+    try:
+        from gap_campaign import build_candidates as gap_candidates
+    except Exception:
+        return cands
+    overlap = set(cands) & {cid for cid, _ in gap_candidates()}
+    if overlap:
+        raise SystemExit(
+            f"candidate id collision between campaigns: {sorted(overlap)}. "
+            "Ids must be unique so a promoted result names exactly one spec."
+        )
+    cands.update(dict(gap_candidates()))
+    return cands
+
+
 def run_final(camp, run, spec, dcfg, exp_id_prefix):
     loso_rec, loso_preds, *_ = camp.evaluate_full_loso(spec, dcfg, exp_id=f"{exp_id_prefix}_loso26")
     lock_rec, lock_preds, *_ = camp.evaluate_lockbox(spec, dcfg, exp_id=f"{exp_id_prefix}_lockbox")
@@ -51,7 +74,7 @@ def main():
     ap.add_argument("--tag", default="target-campaign-final")
     args = ap.parse_args()
 
-    candidates = dict(build_candidates())
+    candidates = all_candidates()
     if args.candidate not in candidates:
         raise SystemExit(f"unknown candidate {args.candidate!r}; choices: {list(candidates)}")
     cfg = candidates[args.candidate]

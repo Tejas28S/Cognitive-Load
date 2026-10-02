@@ -6,9 +6,9 @@ import { useTheme } from "../lib/theme";
 // global actions (theme). Opens on the shortcut or the nav "⌘K" affordance.
 const PAGES = [
   { to: "/", label: "Home", hint: "Landing page & project abstract" },
+  { to: "/dashboard", label: "Dashboard", hint: "The served binary model at a glance" },
   { to: "/overview", label: "Overview", hint: "Headline result & summary" },
   { to: "/workflow", label: "Workflow", hint: "The research pipeline, stage by stage" },
-  { to: "/research", label: "Research", hint: "DANN, protocol taxonomy, ablations" },
   { to: "/live", label: "Live Prediction", hint: "Run a held-out window" },
   { to: "/session", label: "Session Trend", hint: "Play back a subject's trials" },
   { to: "/upload", label: "Upload Data", hint: "Predict on a features CSV" },

@@ -162,10 +162,11 @@ export default function ModelInsights() {
 
       <div className="grid grid-2" style={{ marginBottom: 20 }}>
         <div className="card">
-          <h2>SHAP feature-category importance</h2>
+          <h2>{shap.method === "integrated_gradients" ? "Feature-category importance" : "SHAP feature-category importance"}</h2>
           <p className="card-sub">
-            Mean absolute SHAP value aggregated by feature family - larger =
-            more influence on the model's output.
+            {shap.method === "integrated_gradients"
+              ? "Mean absolute Integrated Gradients value aggregated by feature family - larger = more influence on the model's output."
+              : "Mean absolute SHAP value aggregated by feature family - larger = more influence on the model's output."}
           </p>
           <ShapChart categories={shap.categories} />
           {shap.per_class && (
@@ -174,6 +175,26 @@ export default function ModelInsights() {
                 Top drivers per class
               </div>
               <ShapPerClass perClass={shap.per_class} topN={5} />
+            </div>
+          )}
+          {shap.method === "integrated_gradients" && (
+            <div className="note plain" style={{ marginTop: 14, fontSize: "0.85rem" }}>
+              True SHAP (DeepExplainer/GradientExplainer) can't run in this
+              environment - its <code>shap</code> package depends on{" "}
+              <code>numba</code>, which fails to load under an OS Application
+              Control policy here. These are{" "}
+              <strong>Integrated Gradients</strong> instead: a closely
+              related, axiomatically-grounded attribution method, computed
+              directly on the real served binary model over the real
+              held-out demo windows - not a placeholder and not a value
+              carried over from another model.
+            </div>
+          )}
+          {(!shap.categories || shap.categories.length === 0) && (
+            <div className="note plain" style={{ marginTop: 14, fontSize: "0.85rem" }}>
+              SHAP importance is not shown here: it was only ever computed for
+              the legacy 3-class study, and showing those values here would
+              attribute another model's feature drivers to this one.
             </div>
           )}
         </div>
@@ -217,7 +238,7 @@ export default function ModelInsights() {
         <div className="card" style={{ marginBottom: 20 }}>
           <h2>On the held-out demo windows</h2>
           <p className="card-sub">
-            The frozen served ensemble run over the {diagnostics.n_windows} demo
+            The frozen served Hybrid network run over the {diagnostics.n_windows} demo
             windows ({diagnostics.per_subject?.length} subjects). Read-only
             diagnostics - the same numbers behind the Live demo, aggregated.
           </p>

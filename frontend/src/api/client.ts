@@ -55,6 +55,25 @@ export const uploadMat = <T = any,>(eegFile: File, nirsFile: File, version: stri
     .then((r) => r.data);
 };
 
+export const getUniversalDatasets = <T = any,>(): Promise<T> =>
+  api.get("/api/predict/universal/datasets").then((r) => r.data);
+
+export const uploadUniversal = <T = any,>(files: File[], datasetProfile: string = "", version: string = "binary"): Promise<T> => {
+  const form = new FormData();
+  for (const f of files) {
+    form.append("files", f);
+  }
+  const params: Record<string, string> = { version };
+  if (datasetProfile) params.dataset = datasetProfile;
+  return api
+    .post("/api/predict/universal", form, {
+      params,
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 300000,
+    })
+    .then((r) => r.data);
+};
+
 // Direct URL for the example-CSV download link.
 export const uploadTemplateUrl = (version: string = "binary"): string => `${baseURL}/api/predict/upload/template?version=${version}`;
 
@@ -86,6 +105,8 @@ export const getRunRepresentations = <T = any,>(runId: string): Promise<T> =>
   api.get(`/api/runs/${runId}/representations`).then((r) => r.data);
 export const getRunExperiments = <T = any,>(runId: string): Promise<T> =>
   api.get(`/api/runs/${runId}/experiments`).then((r) => r.data);
+export const getRunSummary = <T = any,>(runId: string): Promise<T> =>
+  api.get(`/api/runs/${runId}/summary`).then((r) => r.data);
 export const getRunPredictions = <T = any,>(runId: string, params: Record<string, unknown> = {}): Promise<T> =>
   api.get(`/api/runs/${runId}/predictions`, { params }).then((r) => r.data);
 

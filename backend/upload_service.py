@@ -1,5 +1,5 @@
 """
-upload_service.py — validate + preprocess an uploaded CSV of already-extracted
+upload_service.py: validate + preprocess an uploaded CSV of already-extracted
 TU Berlin features, reproducing the served pipeline WITHOUT importing the
 training code.
 
@@ -104,8 +104,8 @@ class UploadService:
             subjects = df[self.subject_col].astype(str).to_numpy()
             norm_mode = "per_subject"
         else:
-            # No subject id: treat the whole upload as one group. Degraded —
-            # the model was trained with per-subject stats — so flag it loudly.
+            # No subject id: treat the whole upload as one group. Degraded,
+            # the model was trained with per-subject stats, so flag it loudly.
             subjects = np.array(["__ALL__"] * len(df))
             norm_mode = "global_fallback_no_subject_id"
 

@@ -127,7 +127,7 @@ export default function EvaluationMetrics() {
   const cfg = detail.data?.config || {};
   const status = detail.data?.status || {};
 
-  // Class names come from the run's own artifacts — never from a constant.
+  // Class names come from the run's own artifacts, never from a constant.
   const classNames =
     confusion.data?.labels ||
     metrics.data?.metrics?.class_names ||

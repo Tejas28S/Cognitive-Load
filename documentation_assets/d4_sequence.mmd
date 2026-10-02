@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor User
+    participant UI as React frontend (Live Prediction page)
+    participant API as FastAPI backend
+    participant DS as DataService
+    participant MS as ModelService
+
+    User->>UI: Open /live, pick a subject + window
+    UI->>API: GET /api/demo/subjects
+    API->>DS: list_subjects()
+    DS-->>API: subject list (from serving/demo_samples.json)
+    API-->>UI: JSON
+
+    User->>UI: Click "Run prediction"
+    UI->>API: POST /api/predict?version=binary
+    API->>DS: get_window(subject_id, window_index)
+    DS-->>API: features + true_label
+    API->>MS: predict_single(features)
+    MS->>MS: scale with feature_scaler.pkl,<br/>forward pass through frozen Hybrid net
+    MS-->>API: predicted_label, probabilities,<br/>attention_weights, uncertainty
+    API-->>UI: PredictResponse JSON
+    UI-->>User: PredictionReport: verdict, guidance,<br/>confidence, export options

@@ -17,8 +17,8 @@ type MetricsResponse = {
 };
 
 /**
- * First paint. A full-viewport opening that states what the project is, then
- * — on scroll — the abstract and the headline numbers.
+ * First paint. A full-viewport opening that states what the project is, then,
+ * on scroll, the abstract and the headline numbers.
  *
  * The hero deliberately does not lead with an accuracy figure. The project's
  * central claim is methodological (how the model is evaluated, not how high it

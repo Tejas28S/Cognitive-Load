@@ -802,3 +802,50 @@ Domain-adversarial training (gradient-reversal subject discriminator) directly a
 3. The lambda sweep degrades **monotonically** as adversarial pressure rises (0.42 → 0.36), i.e. the adversary injects noise rather than removing a harmful confound.
 
 Together these say the cross-subject difficulty on this dataset is **not** driven by a decodable subject-identity confound in the learned features (per-subject normalization already handled the main baseline leak); it reflects genuine task difficulty / limited transferable signal. This is a legitimate negative result: a mainstream cross-subject method, applied rigorously with a paired-significance gate and a mechanism probe, is correctly declined — and the *reason* is consistent with the rest of the project's findings. (Note: the main-run baseline uses the standard `train_model` path while DANN uses `train_dann`; the cleanest adversary-on-vs-off comparison is the lambda sweep above, which shares one code path and reaches the same conclusion.)
+
+## Classical Baseline Run
+
+Run timestamp: 2026-09-28 17:17
+
+Preprocessing: EEG_LOG_TRANSFORM=True, FNIRS_SIGNED_LOG_TRANSFORM=True. Split grouping: subject_id + trial_id when present.
+
+| Model | Accuracy | Macro F1 | Weighted F1 | AUC | Medium Recall |
+|---|---:|---:|---:|---:|---:|
+| Random Forest | 0.5727 | 0.5674 | 0.5674 | nan | 0.6838 |
+
+Interpretation: compare this baseline with the deep models to separate data ceiling from architecture effects.
+
+Random Forest feature importance summary:
+
+| Modality | Total Importance |
+|---|---:|
+| HbR | 0.4029 |
+| HbO | 0.3912 |
+| EEG | 0.2059 |
+
+Top 20 Random Forest features:
+
+| Rank | Feature | Modality | Importance |
+|---:|---|---|---:|
+| 1 | hbo_ch07_max | HbO | 0.00819 |
+| 2 | hbo_ch06_max | HbO | 0.00786 |
+| 3 | hbo_ch05_max | HbO | 0.00559 |
+| 4 | hbo_ch06_mean | HbO | 0.00538 |
+| 5 | hbo_ch09_max | HbO | 0.00516 |
+| 6 | hbr_ch32_max | HbR | 0.00446 |
+| 7 | hbr_ch32_mean | HbR | 0.00417 |
+| 8 | hbo_ch07_mean | HbO | 0.00413 |
+| 9 | hbo_ch19_max | HbO | 0.00397 |
+| 10 | hbr_ch00_min | HbR | 0.00388 |
+| 11 | hbr_ch06_min | HbR | 0.00381 |
+| 12 | hbr_ch21_min | HbR | 0.00369 |
+| 13 | hbr_ch09_min | HbR | 0.00363 |
+| 14 | hbr_ch32_min | HbR | 0.00342 |
+| 15 | hbo_ch23_mean | HbO | 0.00332 |
+| 16 | hbo_ch00_max | HbO | 0.00322 |
+| 17 | hbr_ch09_max | HbR | 0.00322 |
+| 18 | hbr_ch32_late | HbR | 0.00320 |
+| 19 | hbo_ch08_max | HbO | 0.00317 |
+| 20 | hbo_ch22_min | HbO | 0.00313 |
+
+Full importance table saved to `outputs/rf_feature_importances.csv`.

@@ -14,7 +14,7 @@ type FigureProps = {
  * A figure "plate": the chart framed, numbered and captioned the way a paper
  * figure is, with the artifact it traces to named in the caption.
  *
- * The source line is not decoration — it is the project's core claim made
+ * The source line is not decoration: it is the project's core claim made
  * checkable. Anything shown here can be recomputed from the named file.
  *
  * The body is the horizontal scroll container, so wide charts scroll inside

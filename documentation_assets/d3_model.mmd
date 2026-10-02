@@ -1,0 +1,16 @@
+flowchart TB
+    EEG["EEG features<br/>180 or 540 dims"] --> EENC["EEG encoder<br/>ModalityMLP: 2 residual blocks<br/>fixed projection dim"]
+    FN["fNIRS HbO features<br/>468 or 936 dims"] --> FENC["fNIRS encoder<br/>ModalityMLP: 2 residual blocks<br/>same fixed projection dim"]
+    EENC --> FUSE["Attention fusion<br/>learned gate per modality<br/>gate_eeg, gate_fnirs"]
+    FENC --> FUSE
+    FUSE --> HEAD["Classification head<br/>FC 48 -> 24 -> logits"]
+    HEAD --> OUT["Low / High<br/>binary served model"]
+
+    FUSE -.->|"training-time only, off by default"| GRL["Gradient reversal layer -lambda"]
+    GRL -.-> DISC["Subject discriminator<br/>DANN, dann.py"]
+    DISC -.->|"not adopted: no significant lift"| NOTE["kept as a documented<br/>negative result"]
+
+    style OUT fill:#dcfce7,stroke:#15803d
+    style GRL fill:#f3f4f6,stroke:#6b7280,stroke-dasharray: 4 3
+    style DISC fill:#f3f4f6,stroke:#6b7280,stroke-dasharray: 4 3
+    style NOTE fill:#fee2e2,stroke:#b91c1c,stroke-dasharray: 4 3

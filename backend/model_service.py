@@ -1,5 +1,5 @@
 """
-model_service.py — loads the frozen Hybrid model + scaler and runs inference.
+model_service.py: loads the frozen Hybrid model + scaler and runs inference.
 
 This module is intentionally self-contained: it reconstructs the model from
 serving/model_config.json + serving/model_weights.pt WITHOUT importing anything
@@ -160,7 +160,7 @@ class ModelService:
         - margin     : gap between the top-2 probabilities.
         - entropy    : Shannon entropy normalized to [0,1] (1 = fully uncertain).
         - disagreement: total-variation distance between the Hybrid and RF heads
-          (epistemic signal — the two ensemble members pointing different ways).
+          (epistemic signal: the two ensemble members pointing different ways).
         - abstain    : the model is not confident enough to commit to one label.
         """
         p = np.asarray(probs, dtype=float)
@@ -192,7 +192,7 @@ class ModelService:
         hybrid_probs = torch.softmax(self.model(eeg, fnirs), dim=-1).cpu().numpy()[0]
 
         # Ensemble: simple probability average of the frozen Hybrid softmax and
-        # the RF predict_proba over the full [eeg|fnirs] feature vector — the
+        # the RF predict_proba over the full [eeg|fnirs] feature vector, the
         # exact combination used to produce the ensemble result in Part 1.
         if self.rf is not None:
             full = np.asarray(features, dtype=np.float32).reshape(1, -1)

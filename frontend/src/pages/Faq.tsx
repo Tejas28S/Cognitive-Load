@@ -225,7 +225,7 @@ export default function Faq() {
                 This project reports cross-subject performance, where every test
                 person is genuinely unseen. The drop between the two protocols
                 is the finding, not a defect. The{" "}
-                <A to="/research">research dossier</A> lays out the taxonomy.
+                <A to="/methodology">methodology page</A> lays out the taxonomy.
               </p>
             </>
           ),
@@ -455,8 +455,8 @@ export default function Faq() {
               The <A to="/methodology">methodology page</A> covers protocol and
               limitations in technical detail, the{" "}
               <A to="/workflow">pipeline</A> walks the whole process stage by
-              stage, and the <A to="/research">research dossier</A> holds the
-              full quantitative record including every rejected candidate.
+              stage, and the <A to="/dashboard">model dashboard</A> holds the
+              headline record including every rejected candidate.
             </p>
           </div>
         </Reveal>

@@ -4,7 +4,7 @@ import { jsPDF } from "jspdf";
 // Render a DOM node to a paginated A4 PDF and trigger a download. Rasterizes
 // the node once (same approach as exportImage.js's PNG export, so the two
 // stay visually identical) then slices the tall image across as many pages
-// as it needs — a report can run longer than one page once the reliability
+// as it needs: a report can run longer than one page once the reliability
 // and limitations sections are included.
 export async function downloadNodePdf(node, filename = "report", opts = {}) {
   if (!node) return null;

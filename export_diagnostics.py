@@ -1,27 +1,32 @@
 """
 export_diagnostics.py — calibration & reliability diagnostics for the LOCKED
-served ensemble, computed on the held-out demo windows (fixed-split).
+served model, computed on a bundle's held-out demo windows (fixed-split).
 
-This adds NO change to the served model. It runs the frozen Hybrid + RF
-ensemble (via the real backend ModelService — the same call path the API uses)
-over the 150 committed demo windows and writes an aggregate diagnostics
+This adds NO change to the served model. It runs the frozen model exactly as
+served (via the real backend ModelService — the same call path the API uses;
+the legacy RF ensemble is disabled in serving, so this is Hybrid-only) over
+that bundle's committed demo windows and writes an aggregate diagnostics
 artifact the frontend can plot:
 
-    serving/frontend_data/diagnostics.json
+    <serving_dir>/frontend_data/diagnostics.json
       - reliability     : confidence-bin table + scalar ECE (calibration)
       - coverage_curve  : accuracy vs coverage (validates the abstain thresholds)
       - per_subject     : accuracy + mean confidence for each demo subject
-      - demo_confusion  : aggregate 3x3 confusion matrix on the demo windows
+      - demo_confusion  : aggregate confusion matrix on the demo windows
       - latency         : mean / p95 single-prediction latency (ms)
+
+Labels and matrix size are read from the bundle's own model_config.json
+(class_names), so this runs correctly for both the binary and 3-class bundles.
 
 Every number here traces to this committed artifact + the frozen weights, in
 the same spirit as the other frontend_data/*.json bundles.
 
 Interpreter: C:/Program Files/Python314/python.exe  (the repo .venv is broken)
 Usage (from repo root):
-    & "C:/Program Files/Python314/python.exe" export_diagnostics.py
+    & "C:/Program Files/Python314/python.exe" export_diagnostics.py [--serving_dir serving|serving_3class]
 """
 
+import argparse
 import json
 import os
 import sys
@@ -35,9 +40,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 sys.path.insert(0, "backend")
 from model_service import ModelService, ABSTAIN_CONFIDENCE, ABSTAIN_MARGIN  # noqa: E402
 
-LABELS = ["Low", "Medium", "High"]
-SERVING_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "serving")
-FRONTEND_DIR = os.path.join(SERVING_DIR, "frontend_data")
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_demo(serving_dir):
@@ -102,8 +105,19 @@ def coverage_curve(confidences, correct, n_points=21):
 
 
 def main():
-    svc = ModelService(serving_dir=SERVING_DIR)
-    samples, demo_note = load_demo(SERVING_DIR)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--serving_dir", default="serving",
+        help="Bundle to diagnose: 'serving' (binary) or 'serving_3class'.",
+    )
+    args = parser.parse_args()
+    serving_dir = os.path.join(REPO_ROOT, args.serving_dir)
+    frontend_dir = os.path.join(serving_dir, "frontend_data")
+
+    svc = ModelService(serving_dir=serving_dir)
+    labels = svc.class_names
+    label_ids = list(range(len(labels)))
+    samples, demo_note = load_demo(serving_dir)
 
     y_true, y_pred, confidences, correct, latencies = [], [], [], [], []
     per_subject = defaultdict(lambda: {"n": 0, "correct": 0, "conf_sum": 0.0})
@@ -130,7 +144,7 @@ def main():
 
     reliability, ece = reliability_table(confidences, correct)
     cov = coverage_curve(confidences, correct)
-    cm = confusion_matrix(y_true, y_pred, labels=[0, 1, 2]).tolist()
+    cm = confusion_matrix(y_true, y_pred, labels=label_ids).tolist()
     lat = np.asarray(latencies)
 
     per_subject_out = [
@@ -145,7 +159,7 @@ def main():
 
     diagnostics = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "source": "export_diagnostics.py — frozen hybrid_rf_ensemble over serving/demo_samples.json",
+        "source": f"export_diagnostics.py — frozen {svc.served_model} over {args.serving_dir}/demo_samples.json",
         "note": (
             "Calibration/diagnostics on the held-out demo windows (fixed-split, "
             f"{len(samples)} windows, {len(per_subject_out)} subjects). The served "
@@ -161,7 +175,7 @@ def main():
             "ece": round(ece, 4),
         },
         "reliability": {
-            "labels": LABELS,
+            "labels": labels,
             "ece": round(ece, 4),
             "bins": reliability,
         },
@@ -171,15 +185,15 @@ def main():
             "margin": ABSTAIN_MARGIN,
         },
         "per_subject": per_subject_out,
-        "demo_confusion": {"labels": LABELS, "matrix": cm},
+        "demo_confusion": {"labels": labels, "matrix": cm},
         "latency": {
             "mean_ms": round(float(lat.mean()), 3),
             "p95_ms": round(float(np.percentile(lat, 95)), 3),
         },
     }
 
-    os.makedirs(FRONTEND_DIR, exist_ok=True)
-    out_path = os.path.join(FRONTEND_DIR, "diagnostics.json")
+    os.makedirs(frontend_dir, exist_ok=True)
+    out_path = os.path.join(frontend_dir, "diagnostics.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(diagnostics, f, indent=2)
 

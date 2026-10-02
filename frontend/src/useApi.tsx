@@ -10,7 +10,7 @@ export type ApiState<T> = {
  * Minimal async-data hook: runs `fn` on mount (and when `deps` change),
  * exposing { data, loading, error }.
  *
- * The `alive` flag is what makes a fast route change safe — a response that
+ * The `alive` flag is what makes a fast route change safe: a response that
  * lands after the component unmounted is dropped rather than setting state.
  */
 export function useApi<T>(

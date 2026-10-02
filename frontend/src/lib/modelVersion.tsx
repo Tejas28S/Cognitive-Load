@@ -99,7 +99,7 @@ export function ModelVersionProvider({ children }: { children: ReactNode }) {
       bundles: bundles || [],
       available,
       active,
-      // Class names come from the served model_config, never from a constant —
+      // Class names come from the served model_config, never from a constant:
       // binary is [Low, High], 3-class is [Low, Medium, High].
       classNames: active?.class_names?.length ? active.class_names : null,
       ready: bundles !== null || error !== null,

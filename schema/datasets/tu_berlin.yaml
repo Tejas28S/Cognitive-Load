@@ -1,0 +1,57 @@
+# Dataset profile: TU Berlin / Shin n-back EEG+fNIRS
+# The reference dataset — the one the frozen model was trained on.
+# See docs/adding_a_new_dataset.md for what each key means.
+
+name: tu_berlin
+display_name: "TU Berlin / Shin n-back (EEG + fNIRS)"
+reference: "Shin et al., simultaneous EEG-NIRS, n-back working-memory task"
+is_reference_dataset: true      # this dataset defines the model's feature space
+
+detection:
+  # How the parser recognizes this dataset without being told. First profile
+  # whose signature matches wins; ties are an error, not a guess.
+  mat_struct_keys: ["cnt_nback", "cnt_dsr", "cnt_wg"]
+  mat_field_signature: [clab, fs, x]
+  csv_column_signature: ["eeg_ch00_alpha_mean", "hbo_ch00_mean"]
+
+eeg:
+  format: mat_bbci
+  struct_key_pattern: "cnt_*"
+  fields:
+    data: x                 # (samples, channels)
+    sample_rate: fs
+    channel_names: clab     # <- electrode names live here
+  data_orientation: samples_by_channels
+  sample_rate_hz: 200
+  n_channels: 30
+  units: microvolts
+
+fnirs:
+  format: mat_bbci
+  struct_key_pattern: "cnt_*"
+  fields:
+    hbo: "oxy.x"            # already in haemoglobin space — no Beer-Lambert
+    hbr: "deoxy.x"
+    sample_rate: "oxy.fs"
+  data_orientation: samples_by_channels
+  sample_rate_hz: 10
+  n_channels: 36
+  units: micromolar
+  needs_beer_lambert: false
+
+labels:
+  source: marker_file
+  marker_file_pattern: "mrk_{task}.mat"
+  value_map: tu_berlin_nback      # -> channel_aliases.yaml:label_values
+  class_semantics: "n-back load level (0-back / 2-back / 3-back)"
+
+subjects:
+  directory_pattern: "VP{NNN}-EEG"
+  id_pattern: "VP(\\d+)"
+  n_subjects: 26
+
+windowing:
+  # Inherits feature_level.windowing from canonical_schema.yaml. Listed here
+  # because the augmented training CSV was built with these exact values.
+  window_sec: 5.0
+  stride_sec: 1.0

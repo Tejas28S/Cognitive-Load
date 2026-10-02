@@ -41,7 +41,7 @@
    cycle rather than an indirection.
    ------------------------------------------------------------------------ */
 @theme {
-  /* Type — Spectral (display serif) · Inter (UI/body) · IBM Plex Mono (data) */
+  /* Type: Spectral (display serif) · Inter (UI/body) · IBM Plex Mono (data) */
   --font-display: "Spectral", Georgia, "Times New Roman", serif;
   --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -61,7 +61,7 @@
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
 
-  /* Dark instrument band — hero / footer surfaces */
+  /* Dark instrument band: hero / footer surfaces */
   --color-deep: var(--ink-deep);
   --color-deep-2: var(--ink-deep-2);
   --color-on-deep: var(--on-deep);
@@ -107,13 +107,13 @@
   --text-4xl: clamp(2.6rem, 1.6rem + 4.4vw, 4.75rem); /* landing display */
   --text-4xl--line-height: 1.02;
 
-  /* Geometry — mirrors the legacy --r-* scale */
+  /* Geometry, mirrors the legacy --r-* scale */
   --radius-xs: 6px;
   --radius-sm: 9px;
   --radius-md: 13px;
   --radius-lg: 20px;
 
-  /* Motion — one confident easing curve, used everywhere */
+  /* Motion, one confident easing curve, used everywhere */
   --ease-signal: cubic-bezier(0.2, 0.65, 0.2, 1);
 
   /* Measure */
@@ -136,7 +136,7 @@
   text-transform: uppercase;
 }
 
-/* Tabular figures — for every metric readout, so digits don't jitter on update. */
+/* Tabular figures, for every metric readout, so digits don't jitter on update. */
 @utility tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";

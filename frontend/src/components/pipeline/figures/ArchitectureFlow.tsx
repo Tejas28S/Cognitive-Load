@@ -5,7 +5,7 @@ import { FEATURES, MODEL } from "../../../lib/projectFacts";
  * The served architecture, drawn as signal flow.
  *
  * The connectors animate their pathLength on entry so the diagram assembles in
- * reading order — inputs, encoders, fusion, head. That is the one place motion
+ * reading order: inputs, encoders, fusion, head. That is the one place motion
  * earns its keep here: it makes the direction of flow legible without arrows
  * cluttering every join.
  */

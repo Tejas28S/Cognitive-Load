@@ -1,22 +1,21 @@
 {
-  "generated_at": "2026-07-16T07:10:32.173379+00:00",
-  "source": "export_diagnostics.py \u2014 frozen hybrid_rf_ensemble over serving/demo_samples.json",
-  "note": "Calibration/diagnostics on the held-out demo windows (fixed-split, 150 windows, 6 subjects). The served model is unchanged; these are read-only analysis of its outputs. Not a LOSO estimate.",
-  "served_model": "hybrid_rf_ensemble",
-  "n_windows": 150,
+  "generated_at": "2026-09-02T07:45:59.879920+00:00",
+  "source": "export_diagnostics.py \u2014 frozen hybrid_cnn_lstm over serving/demo_samples.json",
+  "note": "Calibration/diagnostics on the held-out demo windows (fixed-split, 4896 windows, 8 subjects). The served model is unchanged; these are read-only analysis of its outputs. Not a LOSO estimate.",
+  "served_model": "hybrid_cnn_lstm",
+  "n_windows": 4896,
   "overall": {
-    "accuracy": 0.4,
-    "macro_f1": 0.3909,
-    "mean_confidence": 0.4353,
-    "ece": 0.1223
+    "accuracy": 0.7721,
+    "macro_f1": 0.772,
+    "mean_confidence": 0.8852,
+    "ece": 0.1132
   },
   "reliability": {
     "labels": [
       "Low",
-      "Medium",
       "High"
     ],
-    "ece": 0.1223,
+    "ece": 0.1132,
     "bins": [
       {
         "bin_lo": 0.0,
@@ -42,159 +41,159 @@
       {
         "bin_lo": 0.3,
         "bin_hi": 0.4,
-        "avg_confidence": 0.3762125195283443,
-        "accuracy": 0.25,
-        "count": 64
+        "avg_confidence": null,
+        "accuracy": null,
+        "count": 0
       },
       {
         "bin_lo": 0.4,
         "bin_hi": 0.5,
-        "avg_confidence": 0.43296602578035426,
-        "accuracy": 0.5178571428571429,
-        "count": 56
+        "avg_confidence": null,
+        "accuracy": null,
+        "count": 0
       },
       {
         "bin_lo": 0.5,
         "bin_hi": 0.6,
-        "avg_confidence": 0.5497413082599639,
-        "accuracy": 0.4,
-        "count": 25
+        "avg_confidence": 0.5529558203391385,
+        "accuracy": 0.540084388185654,
+        "count": 237
       },
       {
         "bin_lo": 0.6,
         "bin_hi": 0.7,
-        "avg_confidence": 0.644555635213852,
-        "accuracy": 1.0,
-        "count": 5
+        "avg_confidence": 0.6535116208227058,
+        "accuracy": 0.5824561403508772,
+        "count": 285
       },
       {
         "bin_lo": 0.7,
         "bin_hi": 0.8,
-        "avg_confidence": null,
-        "accuracy": null,
-        "count": 0
+        "avg_confidence": 0.7554037126051624,
+        "accuracy": 0.5930470347648262,
+        "count": 489
       },
       {
         "bin_lo": 0.8,
         "bin_hi": 0.9,
-        "avg_confidence": null,
-        "accuracy": null,
-        "count": 0
+        "avg_confidence": 0.855847437621495,
+        "accuracy": 0.7229050279329609,
+        "count": 895
       },
       {
         "bin_lo": 0.9,
         "bin_hi": 1.0,
-        "avg_confidence": null,
-        "accuracy": null,
-        "count": 0
+        "avg_confidence": 0.9636941507508523,
+        "accuracy": 0.8525083612040134,
+        "count": 2990
       }
     ]
   },
   "coverage_curve": [
     {
-      "coverage": 0.0533,
-      "accuracy": 1.0,
-      "n": 8
+      "coverage": 0.05,
+      "accuracy": 0.9551,
+      "n": 245
     },
     {
-      "coverage": 0.1,
-      "accuracy": 0.5333,
-      "n": 15
+      "coverage": 0.0974,
+      "accuracy": 0.9455,
+      "n": 477
     },
     {
-      "coverage": 0.1467,
-      "accuracy": 0.5909,
-      "n": 22
+      "coverage": 0.145,
+      "accuracy": 0.9394,
+      "n": 710
     },
     {
-      "coverage": 0.1933,
-      "accuracy": 0.5172,
-      "n": 29
+      "coverage": 0.1924,
+      "accuracy": 0.9363,
+      "n": 942
     },
     {
       "coverage": 0.24,
-      "accuracy": 0.5278,
-      "n": 36
+      "accuracy": 0.9268,
+      "n": 1175
     },
     {
-      "coverage": 0.2867,
-      "accuracy": 0.5814,
-      "n": 43
+      "coverage": 0.2876,
+      "accuracy": 0.9148,
+      "n": 1408
     },
     {
-      "coverage": 0.3333,
-      "accuracy": 0.56,
-      "n": 50
+      "coverage": 0.335,
+      "accuracy": 0.9067,
+      "n": 1640
     },
     {
-      "coverage": 0.38,
-      "accuracy": 0.4912,
-      "n": 57
+      "coverage": 0.3826,
+      "accuracy": 0.897,
+      "n": 1873
     },
     {
-      "coverage": 0.4267,
-      "accuracy": 0.4688,
-      "n": 64
+      "coverage": 0.4299,
+      "accuracy": 0.8884,
+      "n": 2105
     },
     {
-      "coverage": 0.48,
-      "accuracy": 0.4444,
-      "n": 72
+      "coverage": 0.4775,
+      "accuracy": 0.8794,
+      "n": 2338
     },
     {
-      "coverage": 0.5267,
-      "accuracy": 0.4684,
-      "n": 79
+      "coverage": 0.5249,
+      "accuracy": 0.8689,
+      "n": 2570
     },
     {
-      "coverage": 0.5733,
-      "accuracy": 0.5116,
-      "n": 86
+      "coverage": 0.5725,
+      "accuracy": 0.8616,
+      "n": 2803
     },
     {
-      "coverage": 0.62,
-      "accuracy": 0.4946,
-      "n": 93
+      "coverage": 0.6201,
+      "accuracy": 0.8528,
+      "n": 3036
     },
     {
-      "coverage": 0.6667,
-      "accuracy": 0.48,
-      "n": 100
+      "coverage": 0.6675,
+      "accuracy": 0.8482,
+      "n": 3268
     },
     {
-      "coverage": 0.7133,
-      "accuracy": 0.4766,
-      "n": 107
+      "coverage": 0.7151,
+      "accuracy": 0.8392,
+      "n": 3501
     },
     {
-      "coverage": 0.76,
-      "accuracy": 0.4649,
-      "n": 114
+      "coverage": 0.7625,
+      "accuracy": 0.8278,
+      "n": 3733
     },
     {
-      "coverage": 0.8133,
-      "accuracy": 0.4508,
-      "n": 122
+      "coverage": 0.81,
+      "accuracy": 0.818,
+      "n": 3966
     },
     {
-      "coverage": 0.86,
-      "accuracy": 0.4264,
-      "n": 129
+      "coverage": 0.8574,
+      "accuracy": 0.8054,
+      "n": 4198
     },
     {
-      "coverage": 0.9067,
-      "accuracy": 0.4118,
-      "n": 136
+      "coverage": 0.905,
+      "accuracy": 0.7942,
+      "n": 4431
     },
     {
-      "coverage": 0.9533,
-      "accuracy": 0.4056,
-      "n": 143
+      "coverage": 0.9524,
+      "accuracy": 0.7832,
+      "n": 4663
     },
     {
       "coverage": 1.0,
-      "accuracy": 0.4,
-      "n": 150
+      "accuracy": 0.7721,
+      "n": 4896
     }
   ],
   "abstain_thresholds": {
@@ -204,67 +203,71 @@
   "per_subject": [
     {
       "subject_id": 1,
-      "n": 25,
-      "accuracy": 0.48,
-      "mean_confidence": 0.4355
+      "n": 1275,
+      "accuracy": 0.8369,
+      "mean_confidence": 0.8923
     },
     {
       "subject_id": 2,
-      "n": 25,
-      "accuracy": 0.36,
-      "mean_confidence": 0.4373
+      "n": 357,
+      "accuracy": 0.6583,
+      "mean_confidence": 0.8374
     },
     {
-      "subject_id": 8,
-      "n": 25,
-      "accuracy": 0.4,
-      "mean_confidence": 0.425
+      "subject_id": 5,
+      "n": 663,
+      "accuracy": 0.6757,
+      "mean_confidence": 0.8463
     },
     {
-      "subject_id": 17,
-      "n": 25,
-      "accuracy": 0.44,
-      "mean_confidence": 0.4325
+      "subject_id": 6,
+      "n": 153,
+      "accuracy": 0.7647,
+      "mean_confidence": 0.8529
     },
     {
-      "subject_id": 18,
-      "n": 25,
-      "accuracy": 0.4,
-      "mean_confidence": 0.4484
+      "subject_id": 11,
+      "n": 969,
+      "accuracy": 0.839,
+      "mean_confidence": 0.9046
     },
     {
-      "subject_id": 24,
-      "n": 25,
-      "accuracy": 0.32,
-      "mean_confidence": 0.433
+      "subject_id": 12,
+      "n": 663,
+      "accuracy": 0.736,
+      "mean_confidence": 0.9016
+    },
+    {
+      "subject_id": 15,
+      "n": 357,
+      "accuracy": 0.7423,
+      "mean_confidence": 0.8773
+    },
+    {
+      "subject_id": 16,
+      "n": 459,
+      "accuracy": 0.756,
+      "mean_confidence": 0.9115
     }
   ],
   "demo_confusion": {
     "labels": [
       "Low",
-      "Medium",
       "High"
     ],
     "matrix": [
       [
-        26,
-        15,
-        7
+        1922,
+        526
       ],
       [
-        13,
-        23,
-        18
-      ],
-      [
-        17,
-        20,
-        11
+        590,
+        1858
       ]
     ]
   },
   "latency": {
-    "mean_ms": 89.766,
-    "p95_ms": 102.766
+    "mean_ms": 3.066,
+    "p95_ms": 4.529
   }
 }

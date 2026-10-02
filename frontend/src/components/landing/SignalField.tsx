@@ -6,8 +6,8 @@ import { motion, useReducedMotion } from "motion/react";
  * signal, not decoration.
  *
  * Two families of trace, matching the two modalities the model fuses:
- *  - EEG (indigo): fast, spiky, high-frequency — electrical activity.
- *  - fNIRS (cyan): slow, smooth, lagging — the hemodynamic response.
+ *  - EEG (indigo): fast, spiky, high-frequency, electrical activity.
+ *  - fNIRS (cyan): slow, smooth, lagging, the hemodynamic response.
  *
  * Both are drawn from deterministic maths (no RNG) so the figure is identical
  * on every render and across SSR/hydration, and both are kept at low opacity so

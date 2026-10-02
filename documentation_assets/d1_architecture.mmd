@@ -1,0 +1,32 @@
+flowchart TB
+    subgraph DATA["Offline: data and training -- not shipped with the app"]
+        RAW["TU Berlin / Shin n-back dataset<br/>26 subjects, raw EEG + fNIRS .mat files"]
+        FEAT["Feature extraction<br/>extract_features.py, sliding_window_extractor.py"]
+        RESEARCH["research/ framework<br/>leakage-audited LOSO folds, model zoo, campaigns"]
+        OUT["outputs/ and outputs/runs/<br/>checkpoints, metrics, full run archive"]
+        RAW --> FEAT --> RESEARCH --> OUT
+    end
+
+    subgraph EXPORT["Export step -- run manually after a winner is picked"]
+        EXP["export_for_serving.py<br/>export_research_data.py"]
+    end
+
+    subgraph SERVE["Serving bundle -- committed to git, ships with the repo"]
+        BUNDLE["serving/ and serving_3class/<br/>frozen weights, scaler, RF model,<br/>demo samples, frontend_data/*.json"]
+    end
+
+    subgraph APP["Demo application -- what a visitor actually runs"]
+        API["FastAPI backend, port 8000<br/>ModelService / DataService / UploadService / RunsService"]
+        UI["React + Vite frontend, port 5173<br/>Overview, Workflow, Methodology, Assess, Evidence, Research, About"]
+        API <-->|JSON over REST| UI
+    end
+
+    OUT --> EXP
+    EXP --> BUNDLE
+    BUNDLE --> API
+    UI --> USER["Browser / presenter"]
+
+    style DATA fill:#eef2ff,stroke:#4338ca
+    style EXPORT fill:#fef9c3,stroke:#a16207
+    style SERVE fill:#dcfce7,stroke:#15803d
+    style APP fill:#fee2e2,stroke:#b91c1c

@@ -1,0 +1,141 @@
+# Dataset profile: Stroop colour-word EEG+fNIRS
+#
+# "Open access dataset integrating EEG and fNIRS during Stroop tasks"
+# Chen, Gao, Li, Ji, Liu, Xiao — Scientific Data (2023)
+# https://doi.org/10.1038/s41597-023-02524-1
+# Figshare: 10.6084/m9.figshare.c.6623431.v1   (CC0)
+#
+# Field layouts below were read directly from the downloaded files
+# (data/stroop_raw/), not from the paper — see the `verified` notes.
+
+name: stroop
+display_name: "Stroop colour-word interference (EEG + fNIRS)"
+is_reference_dataset: false
+
+detection:
+  mat_struct_keys: ["EEG", "yy"]
+  mat_field_signature: [setname, nbchan, srate, chanlocs, event]   # EEGLAB struct
+  csv_column_signature: []
+
+eeg:
+  format: mat_eeglab
+  struct_key: EEG
+  fields:
+    data: data              # verified: (34, 243080) = channels x samples
+    sample_rate: srate      # verified: 1000
+    channel_names: "chanlocs.labels"
+    n_channels: nbchan      # verified: 34
+    events: event           # verified: 64 events, fields type/latency/urevent
+  data_orientation: channels_by_samples    # NOTE: transposed vs TU Berlin
+  sample_rate_hz: 1000
+  n_channels: 34
+  units: microvolts
+  # Verified channel order from S1.mat chanlocs:
+  channel_names_actual:
+    [FP1, FP2, F7, F3, FZ, F4, F8, FT7, FC3, FCZ, FC4, FT8, T7, C3, CZ, C4, T8,
+     TP7, CP3, CPZ, CP4, TP8, P7, P3, PZ, P4, P8, O1, OZ, O2, M1, M2, HEO, VEO]
+  # Resampled to the bundle's rate during projection (1000 Hz -> 200 Hz).
+  resample_to_hz: 200
+
+fnirs:
+  format: mat_cell_array
+  struct_key: yy            # verified: 1x44 object array
+  layout:
+    # Verified against S1.mat: 44 columns, first two empty (shape (0,)),
+    # index 2 is the sync/marker trace, 3..42 are the data, 43 is unused.
+    empty_columns: [0, 1]
+    sync_column: 2
+    data_columns: [3, 42]   # inclusive range
+    unused_columns: [43]
+    # Odd data columns = 785nm, even = 850nm, for 20 channels interleaved.
+    wavelength_interleave:
+      wl_785: odd
+      wl_850: even
+    n_optode_channels: 20
+  data_orientation: samples_by_channels
+  sample_rate_hz: 100
+  units: optical_density
+  # Stroop ships RAW OPTICAL INTENSITY, not haemoglobin. Canonical form requires
+  # conversion (canonical_schema.yaml: signal_level.fnirs.units = micromolar).
+  needs_beer_lambert: true
+  beer_lambert:
+    wavelengths_nm: [785, 850]
+    # Differential pathlength factors and extinction coefficients. DPF values
+    # are the standard adult-forehead figures; source-detector separation is not
+    # documented per-channel in the dataset, so 3.0 cm (the conventional value)
+    # is assumed and RECORDED as an assumption in the mapping report.
+    dpf: [6.0, 5.2]
+    source_detector_separation_cm: 3.0
+    extinction_coefficients:
+      # [HbO, HbR] in cm^-1 / (mol/L), Prahl tabulation
+      "785": [735.0, 1102.0]
+      "850": [1097.0, 781.0]
+  resample_to_hz: 10
+
+labels:
+  source: eeg_events        # labels are derived from EEG event codes
+  event_type_field: type
+  event_latency_field: latency
+  latency_units: samples
+  latency_sample_rate_hz: 1000     # latency indexes the EEG clock
+  value_map: stroop                # -> channel_aliases.yaml:label_values
+  class_semantics: >
+    Stroop interference: event type 1 = neutral/congruent, type 2 = incongruent.
+    Treating interference as a cognitive-load proxy is an explicit modelling
+    assumption (see channel_aliases.yaml:label_values.stroop).
+  # Verified: 32 events of type 1 and 32 of type 2 per subject, ~2020ms apart.
+  n_trials_per_condition: 32
+  # Trial epoch length. The stimulus presentation rate is ~2s; the canonical
+  # 5s window would straddle trials, so epoching is trial-locked here.
+  trial_epoch_sec: 2.0
+
+# Synchronization between modalities. The fNIRS sync trace (column index 2) is
+# an ANALOG signal, not clean digital pulses — it needs threshold-based edge
+# detection to recover trial onsets on the fNIRS clock. Until that is validated
+# against the EEG event latencies, alignment is declared unresolved rather than
+# assumed correct.
+synchronization:
+  method: analog_sync_trace_edge_detection
+  status: unvalidated
+  fallback: align_by_recording_start
+  note: >
+    EEG is ~243s (243080 samples @ 1000Hz), fNIRS ~240s (23992 @ 100Hz).
+    Durations are close but not identical, so start-aligned fallback accrues
+    drift across the recording. Do not trust trial-level cross-modal alignment
+    until the sync trace is decoded.
+
+subjects:
+  file_pattern: "S{N}.mat"
+  id_pattern: "S(\\d+)"
+  n_subjects: 21
+
+behavioral:
+  format: mat_array
+  shape: [4, 32]
+  rows:
+    0: accuracy_neutral      # 1 = correct, 2 = wrong, 0 = no response
+    1: reaction_time_neutral # seconds
+    2: accuracy_incongruent
+    3: reaction_time_incongruent
+
+# ---------------------------------------------------------------------------
+# PROJECTION ONTO THE EXISTING (TU BERLIN) MODEL BUNDLE
+# ---------------------------------------------------------------------------
+# Recorded here so the limitation is config, not a surprise at runtime.
+projection_notes:
+  eeg:
+    exact_matches: 16        # Fp1 Fp2 T7 C3 Cz C4 T8 P7 P3 Pz P4 P8 O1 O2 + HEO/VEO
+    neighbour_substitutions_available: true
+    status: viable_with_documented_substitution
+  fnirs:
+    exact_matches: 0
+    status: not_mappable
+    reason: >
+      The model expects 36 optode-pair positions; Stroop supplies 20, over
+      frontal cortex only, and NEITHER dataset ships montage metadata in the
+      serving bundle, so no defensible positional correspondence exists.
+      Per canonical_schema.yaml:projection.thresholds, fNIRS coverage of 0.0
+      falls below refuse_below (0.70), so prediction against the TU Berlin
+      bundle is REFUSED rather than zero-filled.
+      The valid route to Stroop predictions is a Stroop-native serving bundle
+      (retrain), which this ingestion layer is what makes possible.

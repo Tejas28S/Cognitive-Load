@@ -1,5 +1,5 @@
 """
-data_service.py — loads demo windows and precomputed evaluation artifacts
+data_service.py: loads demo windows and precomputed evaluation artifacts
 from serving/ and serving/frontend_data/. No training-pipeline imports.
 """
 

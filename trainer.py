@@ -56,7 +56,10 @@ def build_optimizer(model, cfg):
         return Adam(model.parameters(), **kwargs)
     if optimizer_name == "adamw":
         return AdamW(model.parameters(), **kwargs)
-    raise ValueError("Config.OPTIMIZER must be 'adam' or 'adamw'")
+    if optimizer_name == "lion":
+        from lion_pytorch import Lion
+        return Lion(model.parameters(), **kwargs)
+    raise ValueError("Config.OPTIMIZER must be 'adam', 'adamw', or 'lion'")
 
 
 # ── Early stopping ────────────────────────────────────────────

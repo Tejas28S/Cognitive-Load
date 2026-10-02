@@ -1,9 +1,9 @@
 """
-main.py — FastAPI app for the cognitive-load demo.
+main.py: FastAPI app for the cognitive-load demo.
 
 Serves the FINAL locked model (via ModelService) and precomputed evaluation
 artifacts (via DataService). Every number returned traces to a committed
-artifact under serving/ — nothing here is hardcoded.
+artifact under serving/, nothing here is hardcoded.
 
 Run:
     uvicorn main:app --reload --port 8000
@@ -31,7 +31,7 @@ from schemas import (
 )
 
 app = FastAPI(
-    title="Cognitive Load — Demo API",
+    title="Cognitive Load: Demo API",
     description=(
         "Serves the frozen Hybrid EEG+fNIRS cognitive-load model and its "
         "committed evaluation artifacts. Predictions run on real "
@@ -52,8 +52,17 @@ app.add_middleware(
 
 # Load the model + data once at startup (not per-request).
 import os
+import sys
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _ensure_root_on_path():
+    """Make the repo root importable so `ingestion` can be loaded from backend/."""
+    if _ROOT not in sys.path:
+        sys.path.insert(0, _ROOT)
+
+
 _BUNDLES = {"binary": "serving", "3class": "serving_3class"}
 
 model_services, data_services, upload_services = {}, {}, {}
@@ -105,7 +114,7 @@ def bundles():
 
     The UI's model switch reads this so it can offer 2-class and 3-class as real
     options, label each with its true class names, and disable (with a reason)
-    any bundle whose artifacts are missing — rather than letting the user pick a
+    any bundle whose artifacts are missing, rather than letting the user pick a
     mode that only fails at request time.
     """
     out = []
@@ -361,7 +370,7 @@ async def predict_upload(file: UploadFile = File(...), version: str = Query("bin
             "Per-subject normalization applied using each subject's own uploaded "
             "rows." if norm_mode == "per_subject" else
             "No subject_id column: per-subject normalization could not be applied; "
-            "the whole file was normalized as one group (degraded — the model was "
+            "the whole file was normalized as one group (degraded: the model was "
             "trained with per-subject stats)."
         ),
         "summary": {
@@ -440,9 +449,110 @@ async def predict_upload_mat(
     }
 
 
+# ── Universal upload (any dataset, auto-detected schema) ────────────────────
+#
+# ADDITIVE: the two endpoints above are unchanged and remain the fast path for
+# TU Berlin data. This one accepts arbitrary datasets by routing through the
+# ingestion layer (parser -> normalizer -> projection -> the SAME preprocessing
+# and the SAME frozen model). It returns the schema mapping report alongside the
+# prediction, and refuses rather than guessing when the input cannot be mapped
+# onto the model's channel layout with enough coverage.
+
+_universal_predictors = {}
+
+
+def get_universal_predictor(version: str):
+    if version not in _BUNDLES:
+        raise HTTPException(status_code=400,
+                            detail="Invalid version. Use 'binary' or '3class'")
+    if version in bundle_errors:
+        raise HTTPException(
+            status_code=503,
+            detail=f"The '{version}' model bundle is not available: {bundle_errors[version]}",
+        )
+    if version not in _universal_predictors:
+        _ensure_root_on_path()
+        from ingestion.pipeline import UniversalPredictor
+        _universal_predictors[version] = UniversalPredictor(version=version)
+    return _universal_predictors[version]
+
+
+@app.get("/api/predict/universal/datasets")
+def universal_datasets():
+    """Dataset profiles the ingestion layer can recognize."""
+    _ensure_root_on_path()
+    from ingestion.canonical import load_dataset_profiles
+
+    profiles = load_dataset_profiles()
+    return {
+        "datasets": [
+            {
+                "name": name,
+                "display_name": prof.get("display_name", name),
+                "is_reference_dataset": bool(prof.get("is_reference_dataset")),
+                "eeg_channels": (prof.get("eeg") or {}).get("n_channels"),
+                "fnirs_channels": (prof.get("fnirs") or {}).get("n_channels")
+                                  or (prof.get("fnirs") or {}).get("layout", {})
+                                  .get("n_optode_channels"),
+                "projection_notes": prof.get("projection_notes"),
+            }
+            for name, prof in sorted(profiles.items())
+        ],
+        "supported_formats": [".csv", ".tsv", ".txt", ".mat", ".npz", ".npy",
+                              ".edf", ".bdf"],
+    }
+
+
+@app.post("/api/predict/universal")
+async def predict_universal(
+    files: list[UploadFile] = File(...),
+    version: str = Query("binary"),
+    dataset: str = Query(None, description="Force a dataset profile"),
+    subject_id: str = Query(None),
+    max_windows: int = Query(200, ge=1, le=5000),
+):
+    """Predict from any supported dataset file.
+
+    Raw recordings usually need one file per modality, so `files` is a list.
+    A refusal returns HTTP 422 with the same structured body the pipeline
+    produces, including exactly which canonical fields could not be filled.
+    """
+    predictor = get_universal_predictor(version)
+
+    payload = []
+    for f in files:
+        payload.append({"content": await f.read(), "filename": f.filename})
+    if not payload:
+        raise HTTPException(status_code=422, detail="No files were uploaded.")
+
+    _ensure_root_on_path()
+    from ingestion.canonical import IngestionError
+
+    try:
+        result = predictor.predict(
+            payload, dataset=dataset, subject_id=subject_id,
+            max_windows=max_windows,
+        )
+    except IngestionError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": str(exc), "error_code": "unreadable_input",
+                    **(exc.detail or {})},
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400,
+                            detail=f"Ingestion failed: {type(exc).__name__}: {exc}")
+
+    if result.get("refused"):
+        # A refusal is a well-formed answer, not a server fault: 422 carries the
+        # full report so a caller can see what was missing and why.
+        raise HTTPException(status_code=422, detail=result)
+
+    return result
+
 
 # ════════════════════════════════════════════════════════════════════════════
-#  Evaluation runs — the experiment archive under outputs/runs/
+#  Evaluation runs: the experiment archive under outputs/runs/
 #
 #  These endpoints serve artifacts a training run wrote to disk. Nothing is
 #  computed here: every metric, matrix, curve and figure below was produced by
@@ -543,7 +653,7 @@ def run_training_history(run_id: str):
 #
 # BASELINE outranks CANDIDATE deliberately. A promotion run evaluates a
 # candidate that may well have been *rejected* (as D2 was), and the baseline is
-# what stays served in that case — so the baseline's folds are the honest
+# what stays served in that case, so the baseline's folds are the honest
 # default. Callers who want the candidate's folds ask for them by name.
 LOSO26_EXPERIMENTS = ("FINAL_loso26", "BASELINE_loso26", "CANDIDATE_loso26")
 

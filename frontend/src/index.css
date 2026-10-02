@@ -174,7 +174,7 @@ strong {
   font-family: var(--font-mono);
   font-size: 0.88em;
   font-variant-numeric: tabular-nums;
-  /* This class carries filesystem paths and run ids — single "words" with no
+  /* This class carries filesystem paths and run ids, single "words" with no
      spaces that are wider than a phone. `anywhere` (not `break-word`) also
      shrinks the element's min-content size, so it can't force a flex or grid
      parent wider than the viewport. It only breaks strings that would
@@ -859,7 +859,7 @@ table.data tr.is-best td {
   gap: 10px;
   flex-wrap: wrap;
 }
-/* Persistent notice — must survive into every export (PNG/PDF/JSON), not
+/* Persistent notice, must survive into every export (PNG/PDF/JSON), not
    just live in the footer, so it stays quiet but is never absent. */
 .report-badge {
   display: inline-flex;
@@ -935,7 +935,7 @@ table.data tr.is-best td {
   font-weight: 700;
   font-size: 0.8rem;
 }
-/* Limitations read as caveats, not achievements — a dash, not a checkmark. */
+/* Limitations read as caveats, not achievements: a dash, not a checkmark. */
 .report-list--plain li::before {
   content: "–";
   color: var(--ink-3);
@@ -1348,6 +1348,12 @@ body {
 :root[data-theme="dark"] .nav {
   background: rgba(10, 14, 22, 0.78);
 }
+/* Dark steps for the dumbbell ramp: re-picked against the dark surface rather
+   than flipped, so "after" is the brighter end on both grounds. */
+:root[data-theme="dark"] .dumbbell {
+  --db-before: #5f57d6;
+  --db-after: #9aa5ff;
+}
 :root[data-theme="dark"] .note {
   background: rgba(217, 119, 6, 0.1);
   border-color: rgba(217, 119, 6, 0.32);
@@ -1746,7 +1752,7 @@ select,
 }
 
 @media (max-width: 560px) {
-  /* The wordmark goes, the mark stays — it is still a home link, and the page
+  /* The wordmark goes, the mark stays: it is still a home link, and the page
      title carries the identity from here down. */
   .brand-word {
     display: none;
@@ -1861,16 +1867,24 @@ select,
 }
 
 /* ── Dumbbell (fixed-split vs LOSO gap) ─────────────────────────────────── */
+/* Dumbbell: one hue in two shades - the same measure, moved. */
 .dumbbell {
+  --db-before: #8b93d9;
+  --db-after: #4f46e5;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 4px;
+}
+.dumbbell-plot {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .dumbbell-row {
   display: grid;
-  grid-template-columns: 96px 1fr 72px;
+  grid-template-columns: 92px 1fr auto auto;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 .dumbbell-label {
   font-size: 0.84rem;
@@ -1891,48 +1905,102 @@ select,
   background: var(--surface-2);
   border-radius: 2px;
 }
+/* Hairline scale, one step off the surface, solid and recessive. */
+.dumbbell-grid {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--border);
+}
 .dumbbell-connect {
   position: absolute;
   top: 50%;
   height: 4px;
   transform: translateY(-50%);
-  background: linear-gradient(90deg, var(--medium), var(--eeg));
-  border-radius: 3px;
-  opacity: 0.55;
+  background: linear-gradient(90deg, var(--db-before), var(--db-after));
+  border-radius: 2px;
 }
 .dumbbell-dot {
   position: absolute;
   top: 50%;
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
+  /* Surface ring, so the two ends stay legible where they nearly touch. */
   border: 2px solid var(--surface);
+}
+.dumbbell-dot.is-before {
+  background: var(--db-before);
+}
+.dumbbell-dot.is-after {
+  background: var(--db-after);
   box-shadow: var(--shadow-sm);
 }
-.dumbbell-dot.fixed {
-  background: var(--medium);
-}
-.dumbbell-dot.loso {
-  background: var(--eeg);
-}
-.dumbbell-dot.inline {
-  position: static;
-  display: inline-block;
-  transform: translateY(2px);
-  width: 11px;
-  height: 11px;
-  margin-right: 5px;
-  border: none;
-  box-shadow: none;
-}
 .dumbbell-vals {
-  text-align: right;
-  font-size: 0.8rem;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+.dumbbell-arrow {
+  color: var(--ink-3);
+}
+.dumbbell-to {
+  color: var(--ink);
+  font-weight: 600;
 }
 .dumbbell-gap {
-  color: var(--high);
+  min-width: 62px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
   font-weight: 600;
+}
+.dumbbell-gap.is-good {
+  color: var(--ok);
+}
+.dumbbell-gap.is-bad {
+  color: var(--stop);
+}
+.dumbbell-axis {
+  margin-top: -4px;
+}
+.dumbbell-axis .dumbbell-track {
+  height: 14px;
+}
+.dumbbell-axis .dumbbell-track::before {
+  content: none;
+}
+.dumbbell-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  color: var(--ink-3);
+}
+/* Its own element, never the positioned dot - a legend swatch that inherits
+   `position: absolute` is how the stray dots got loose. */
+.dumbbell-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+.dumbbell-key.is-before {
+  background: var(--db-before);
+}
+.dumbbell-key.is-after {
+  background: var(--db-after);
 }
 .dumbbell-legend {
   display: flex;
@@ -1940,9 +2008,25 @@ select,
   flex-wrap: wrap;
   font-size: 0.8rem;
   color: var(--ink-2);
-  margin-top: 4px;
+  margin-top: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  /* The track drops to its own full-width line under the label and numbers,
+     which stay together on one line rather than orphaning the delta. */
+  .dumbbell-row {
+    grid-template-columns: 1fr auto auto;
+    gap: 4px 10px;
+  }
+  .dumbbell-track {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+  .dumbbell-gap {
+    min-width: 0;
+  }
 }
 
 /* ── Animated hero backdrop ─────────────────────────────────────────────── */

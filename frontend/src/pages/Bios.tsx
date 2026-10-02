@@ -1,55 +1,48 @@
 import SectionHeader from "../components/ui/SectionHeader";
 import Reveal, { RevealGroup, RevealItem } from "../components/ui/Reveal";
+import SignalTrace from "../components/SignalTrace";
 import { ADVISORS, HAS_PLACEHOLDERS, TEAM, type TeamMember } from "../lib/team";
 import { DATASET } from "../lib/projectFacts";
 
-/** Initials for the avatar plate. Placeholder entries get a neutral glyph. */
-function initials(name: string) {
-  if (name.startsWith("[")) return "··";
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
+/**
+ * No per-person avatar or colour-coding: everyone on this page fed into the
+ * same fused model, so every card carries the same signature: the trace that
+ * opens as EEG spikes and settles into the fNIRS curve, the exact motif used
+ * for the nav brand mark and the landing hero. What differs card to card is
+ * the name, the role, and the sentence of what they actually built.
+ */
 function MemberCard({ member }: { member: TeamMember }) {
   const isPlaceholder = member.placeholder;
 
   return (
     <article
-      className={`h-full rounded-md border bg-surface p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-signal hover:-translate-y-[3px] hover:shadow-lg motion-reduce:hover:translate-y-0 ${
+      className={`group h-full rounded-md border bg-surface p-6 shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-signal hover:-translate-y-[3px] hover:shadow-lg motion-reduce:hover:translate-y-0 ${
         isPlaceholder
           ? "border-dashed border-warn/45 hover:border-warn/70"
           : "border-line hover:border-line-strong"
       }`}
     >
-      <div className="flex items-start gap-4">
-        <span
-          aria-hidden="true"
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-sm font-display text-lg font-semibold ${
-            isPlaceholder
-              ? "bg-warn/10 text-warn"
-              : "bg-accent/10 text-accent-ink"
-          }`}
-        >
-          {initials(member.name)}
-        </span>
+      <h3
+        className={`font-card text-xl leading-snug font-semibold text-balance ${
+          isPlaceholder ? "text-ink-2" : "text-ink"
+        }`}
+      >
+        {member.name}
+      </h3>
+      <p
+        className={`eyebrow-mono mt-1.5 ${isPlaceholder ? "text-warn" : "text-accent-ink"}`}
+      >
+        {member.role}
+      </p>
 
-        <div className="min-w-0">
-          <h3
-            className={`font-card text-lg leading-snug font-semibold text-balance ${
-              isPlaceholder ? "text-ink-2" : "text-ink"
-            }`}
-          >
-            {member.name}
-          </h3>
-          <p className="mt-1 text-sm font-medium text-accent">{member.role}</p>
-          <p className="mt-0.5 text-sm text-ink-3">{member.affiliation}</p>
-        </div>
-      </div>
+      <SignalTrace
+        className="mt-4 -ml-0.5 opacity-70 transition-opacity duration-200 group-hover:opacity-100"
+        width="104"
+        height={20}
+        strokeWidth={1.6}
+      />
 
-      <p className="mt-5 text-sm leading-relaxed text-ink-2 text-pretty">
+      <p className="mt-4 text-sm leading-relaxed text-ink-2 text-pretty">
         {member.focus}
       </p>
 
@@ -93,9 +86,9 @@ export default function Bios() {
                 This page contains unconfirmed placeholder entries.
               </p>
               <p className="mt-1 max-w-[70ch] text-sm text-ink-2">
-                Names, roles and affiliations are the one thing on this site
-                that cannot be derived from the repository, so none have been
-                invented. Fill them in at{" "}
+                Names and roles are the one thing on this site that cannot be
+                derived from the repository, so none have been invented. Fill
+                them in at{" "}
                 <code className="font-mono text-xs text-ink">
                   src/lib/team.ts
                 </code>{" "}
@@ -113,7 +106,7 @@ export default function Bios() {
             <SectionHeader overline="Contributors" title="Project team" />
           </Reveal>
 
-          <RevealGroup className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <RevealGroup className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {TEAM.map((m) => (
               <RevealItem key={m.name}>
                 <MemberCard member={m} />

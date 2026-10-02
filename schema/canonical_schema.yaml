@@ -1,0 +1,234 @@
+# ============================================================================
+# canonical_schema.yaml — the target schema every ingested dataset normalizes to
+#
+# Step 1 deliverable of the universal dataset parser. Derived by audit from the
+# existing TU Berlin pipeline; see docs/tu_berlin_assumptions.md for the
+# file+line provenance of every value here.
+#
+# There are TWO canonical levels, because the pipeline has two natural entry
+# points:
+#
+#   signal_level   <- raw continuous recordings (.mat/.edf/.npz/...)
+#                     normalized to named electrodes + named chromophores
+#         |
+#         |  windowing + feature extraction (backend/mat_extractor.py maths,
+#         |  which is already channel-count agnostic)
+#         v
+#   feature_level  <- the flat vector the frozen model consumes
+#                     (also the entry point for pre-extracted feature CSVs)
+#
+# Nothing downstream of feature_level changes. The model, its weights, and the
+# LOSO evaluation logic are untouched by this work.
+# ============================================================================
+
+schema_version: 1
+generated: 2026-09-02
+reference_dataset: tu_berlin_shin_nback
+
+# ---------------------------------------------------------------------------
+# SIGNAL LEVEL — canonical form of a raw recording
+# ---------------------------------------------------------------------------
+signal_level:
+
+  eeg:
+    # Channels are identified by ELECTRODE NAME (10-20 / 10-10 system), never by
+    # position. Canonical names are stored in the capitalization convention of
+    # the 10-20 standard (Fp1, not FP1 / fp1); the normalizer is
+    # case-insensitive and separator-insensitive when matching.
+    channel_identity: electrode_name
+    naming_convention: "10-20 / 10-10 (Fp1, AFz, FC5, POz, ...)"
+    units: microvolts
+    units_aliases: [uV, µV, microvolt, microvolts]
+    # Sample rate is read from the source file, never assumed. Resampling to the
+    # model bundle's expected rate happens in the projection step.
+    sample_rate_hz: read_from_source
+    required: true
+    # Ocular channels are carried through because TU Berlin ch28/ch29 are HEOG
+    # and VEOG — they are part of the model's 30-channel input, not artifacts to
+    # be dropped.
+    ocular_channels: [HEOG, VEOG]
+
+  fnirs:
+    # Canonical fNIRS is expressed in HEMOGLOBIN CONCENTRATION space (HbO/HbR),
+    # not raw optical intensity. Datasets shipping raw wavelength intensities
+    # (e.g. Stroop's 785nm/850nm pairs) must pass through a modified
+    # Beer-Lambert conversion during parsing to reach canonical form.
+    channel_identity: optode_pair_index
+    chromophores: [hbo, hbr]
+    units: micromolar
+    units_aliases: [uM, µM, micromolar, mmol/L, molar_concentration]
+    sample_rate_hz: read_from_source
+    required: true
+    # NOTE (important, see docs/tu_berlin_assumptions.md §0): unlike EEG, fNIRS
+    # channels have NO recoverable semantic identity in the serving bundle —
+    # they are bare optode-pair indices with no montage metadata. Cross-dataset
+    # fNIRS mapping therefore requires an explicit, hand-authored montage map in
+    # the dataset profile; it is never inferred. Absent one, fNIRS coverage is
+    # reported as 0 and the pipeline refuses to fabricate the channels.
+    montage_mapping: explicit_only
+
+  events:
+    # Trial/stimulus markers. Optional — only needed when labels are derived
+    # from event codes rather than supplied as a label column.
+    required: false
+    fields:
+      type: "stimulus/condition code or name"
+      latency_samples: "onset, in samples of the modality it indexes"
+      latency_sec: "onset in seconds (derived if only samples are present)"
+
+  metadata:
+    subject_id:
+      required: true
+      # Required because the model's preprocessing does a PER-SUBJECT z-score
+      # (feature_schema.json preprocessing.per_subject_normalize = true).
+      # Without it the normalizer falls back to treating the whole upload as one
+      # subject, which is a documented degradation, not a silent one.
+      on_missing: warn_and_group_all
+    trial_id:
+      required: false
+      on_missing: synthesize
+    session_id:
+      required: false
+      on_missing: ignore
+    label:
+      required: false   # absent for genuine inference; present for scoring
+      canonical_name: Cognitive_Load
+      on_missing: predict_without_scoring
+
+# ---------------------------------------------------------------------------
+# FEATURE LEVEL — the flat vector the frozen model consumes
+# ---------------------------------------------------------------------------
+# This section MIRRORS serving/feature_schema.json rather than replacing it.
+# The serving bundle remains the single source of truth at prediction time; this
+# is the human-readable contract the normalizer targets, and it is validated
+# against the live bundle at load time (ingestion/canonical.py::validate_against_bundle).
+feature_level:
+
+  source_of_truth: serving/feature_schema.json
+  # Per-bundle, so a future Stroop-trained bundle can differ without code change.
+  bundle_registry:
+    binary: serving
+    3class: serving_3class
+
+  eeg:
+    n_channels: 30
+    n_features_per_channel: 18
+    n_features_total: 540
+    column_pattern: "eeg_ch{NN}_{band}_{stat}"
+    bands: [delta, theta, alpha, beta, gamma, engage]
+    stats: [mean, std, slope]
+    band_definitions_hz:
+      delta: [0.5, 4]
+      theta: [4, 8]
+      alpha: [8, 13]
+      beta:  [13, 30]
+      gamma: [30, 45]
+      engage: "beta / (theta + alpha)  — engagement ratio, dimensionless"
+    # THE CRITICAL MAPPING: ch00..ch29 are acquisition-order positions, and this
+    # is the electrode each position actually holds. Recovered from `clab` in
+    # data/EEG_01-26_MATLAB/VP001-EEG/cnt_nback.mat, and valid because
+    # preprocess_tuberlin.load_eeg() applies no channel selection or reordering.
+    # This list is what makes any cross-dataset EEG mapping possible.
+    channel_order:
+      ch00: Fp1
+      ch01: AFF5h
+      ch02: AFz
+      ch03: F1
+      ch04: FC5
+      ch05: FC1
+      ch06: T7
+      ch07: C3
+      ch08: Cz
+      ch09: CP5
+      ch10: CP1
+      ch11: P7
+      ch12: P3
+      ch13: Pz
+      ch14: POz
+      ch15: O1
+      ch16: Fp2
+      ch17: AFF6h
+      ch18: F2
+      ch19: FC2
+      ch20: FC6
+      ch21: C4
+      ch22: T8
+      ch23: CP2
+      ch24: CP6
+      ch25: P4
+      ch26: P8
+      ch27: O2
+      ch28: HEOG
+      ch29: VEOG
+
+  fnirs:
+    n_channels: 36          # per chromophore
+    chromophores: [hbo, hbr]
+    n_features_per_channel: 13
+    n_features_total: 936   # (36 + 36) * 13
+    column_pattern: "{chromophore}_ch{NN}_{stat}"
+    stats: [mean, std, max, min, ptp, skew, kurt, slope, early, late, delta, power, auc]
+    channel_order: positional_only_no_montage_metadata
+
+  metadata_columns:
+    label_column: Cognitive_Load
+    subject_column: subject_id
+    optional_ignored_columns: [task, trial_id, window_id, window_start_sec]
+
+  windowing:
+    window_sec: 5.0
+    stride_sec: 1.0
+    eeg_subwindow_sec: 2.0   # band features are computed per 2s sub-window,
+                             # then mean/std/slope across sub-windows
+    fnirs_baseline_sec: 5.0  # baseline correction window
+
+  filtering:
+    eeg_bandpass_hz: [0.5, 45.0]
+    eeg_filter_order: 3
+    fnirs_bandpass_hz: [0.01, 0.1]
+    fnirs_filter_order: 3
+
+  preprocessing:
+    # Must match serving/feature_schema.json exactly; validated at load time.
+    order: [nan_to_num, per_subject_zscore, log, saved_scalers]
+    per_subject_normalize: true
+    per_subject_stage: before_log
+    per_subject_eps: 1.0e-08
+    eeg_log: log1p_clip_nonneg
+    fnirs_log: signed_log1p
+
+# ---------------------------------------------------------------------------
+# PROJECTION POLICY — how a normalized dataset is mapped onto a bundle
+# ---------------------------------------------------------------------------
+# This is where the "explicit errors over silent guessing" constraint is
+# enforced numerically. A dataset that does not cover enough of the model's
+# expected channels does not get a quietly zero-filled prediction.
+projection:
+
+  # Coverage = (channels the dataset supplies) / (channels the bundle expects),
+  # computed independently per modality.
+  thresholds:
+    # Above this, predictions are emitted normally.
+    confident_min_coverage: 0.90
+    # Between degraded_min and confident_min: prediction is emitted but flagged
+    # `degraded: true` with the coverage numbers in the report.
+    degraded_min_coverage: 0.70
+    # Below degraded_min: refuse. Return a structured error naming the missing
+    # canonical channels rather than a prediction.
+    refuse_below: 0.70
+
+  substitution:
+    # Exact electrode match is always preferred. Nearest-neighbour substitution
+    # (e.g. F3 standing in for the absent F1) is allowed ONLY when declared in
+    # channel_aliases.yaml under `spatial_neighbours`, is always recorded in the
+    # mapping report as `approximate`, and each substitution is counted at a
+    # discount when computing coverage.
+    allow_spatial_neighbours: true
+    neighbour_coverage_weight: 0.5
+
+  fill_policy:
+    # Channels that remain unmatched after exact + neighbour matching.
+    unmatched_channel_fill: nan          # never 0.0 — 0.0 is a legitimate
+                                         # post-z-score value and would be
+                                         # indistinguishable from real data
+    report_unmatched: always

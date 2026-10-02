@@ -6,7 +6,7 @@ type SectionHeaderProps = {
   title: ReactNode;
   /** One or two sentences. Kept to a ~65ch measure for readability. */
   lede?: ReactNode;
-  /** Stage number for the pipeline sections — rendered as a large ghosted numeral. */
+  /** Stage number for the pipeline sections, rendered as a large ghosted numeral. */
   index?: number;
   align?: "left" | "center";
   className?: string;

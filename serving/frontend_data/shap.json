@@ -1,372 +1,461 @@
 {
+  "method": "integrated_gradients",
+  "method_note": "True SHAP (DeepExplainer/GradientExplainer) is blocked in this environment (shap depends on numba, which fails to load under an OS Application Control policy here). These are Integrated Gradients (Sundararajan et al., 2017) computed directly on the real served binary model (serving/model_weights.pt) over the real held-out demo windows - a closely related, axiomatically-grounded attribution method, not a placeholder or carried-over 3-class value.",
+  "n_windows": 4896,
+  "baseline": "feature-wise mean over the held-out demo set",
   "categories": [
     {
-      "category": "fNIRS HBO skew",
-      "mean_abs_shap": 0.30479000386011584
-    },
-    {
-      "category": "fNIRS HBO early",
-      "mean_abs_shap": 0.28670675675853946
-    },
-    {
-      "category": "fNIRS HBO slope",
-      "mean_abs_shap": 0.25807569694645754
-    },
-    {
-      "category": "fNIRS HBO max",
-      "mean_abs_shap": 0.24801672823129095
-    },
-    {
-      "category": "fNIRS HBO mean",
-      "mean_abs_shap": 0.2339294763912161
-    },
-    {
-      "category": "fNIRS HBO delta",
-      "mean_abs_shap": 0.23047594969394905
-    },
-    {
-      "category": "fNIRS HBO kurt",
-      "mean_abs_shap": 0.23027770228344355
+      "category": "fNIRS HBR auc",
+      "mean_abs_shap": 0.4570840531586583
     },
     {
       "category": "fNIRS HBO auc",
-      "mean_abs_shap": 0.211114344706433
+      "mean_abs_shap": 0.3348620506042494
     },
     {
-      "category": "fNIRS HBO late",
-      "mean_abs_shap": 0.2108052823084353
+      "category": "fNIRS HBR power",
+      "mean_abs_shap": 0.3090229289267929
     },
     {
-      "category": "fNIRS HBO ptp",
-      "mean_abs_shap": 0.20952023241654152
+      "category": "fNIRS HBO max",
+      "mean_abs_shap": 0.2923154417582493
     },
     {
-      "category": "fNIRS HBO std",
-      "mean_abs_shap": 0.19706993583920043
+      "category": "fNIRS HBR max",
+      "mean_abs_shap": 0.28085899809786286
     },
     {
       "category": "fNIRS HBO min",
-      "mean_abs_shap": 0.17191804978291317
+      "mean_abs_shap": 0.2763027857790268
+    },
+    {
+      "category": "fNIRS HBO late",
+      "mean_abs_shap": 0.26200400663590556
+    },
+    {
+      "category": "fNIRS HBO mean",
+      "mean_abs_shap": 0.26093529656782566
     },
     {
       "category": "fNIRS HBO power",
-      "mean_abs_shap": 0.1670633697544837
+      "mean_abs_shap": 0.2565507602589754
     },
     {
-      "category": "EEG delta",
-      "mean_abs_shap": 0.0301933572097545
+      "category": "fNIRS HBR min",
+      "mean_abs_shap": 0.2528491691313427
     },
     {
-      "category": "EEG alpha",
-      "mean_abs_shap": 0.028166723560842866
+      "category": "fNIRS HBO early",
+      "mean_abs_shap": 0.24960456246699797
     },
     {
-      "category": "EEG beta",
-      "mean_abs_shap": 0.027981258724171034
+      "category": "fNIRS HBR mean",
+      "mean_abs_shap": 0.2377219881566941
+    },
+    {
+      "category": "fNIRS HBR late",
+      "mean_abs_shap": 0.2352946622060723
+    },
+    {
+      "category": "fNIRS HBR early",
+      "mean_abs_shap": 0.22680968208651453
+    },
+    {
+      "category": "fNIRS HBO ptp",
+      "mean_abs_shap": 0.21069189093105745
+    },
+    {
+      "category": "fNIRS HBR ptp",
+      "mean_abs_shap": 0.20017535576957898
+    },
+    {
+      "category": "fNIRS HBR std",
+      "mean_abs_shap": 0.17766282051965082
+    },
+    {
+      "category": "fNIRS HBO std",
+      "mean_abs_shap": 0.1769231529928743
+    },
+    {
+      "category": "fNIRS HBR skew",
+      "mean_abs_shap": 0.15691490774190325
+    },
+    {
+      "category": "fNIRS HBO skew",
+      "mean_abs_shap": 0.14734523385815765
+    },
+    {
+      "category": "fNIRS HBR kurt",
+      "mean_abs_shap": 0.13228864491606848
+    },
+    {
+      "category": "fNIRS HBO kurt",
+      "mean_abs_shap": 0.12953644727740596
+    },
+    {
+      "category": "fNIRS HBR slope",
+      "mean_abs_shap": 0.11092120965435943
     },
     {
       "category": "EEG gamma",
-      "mean_abs_shap": 0.026118756930240166
+      "mean_abs_shap": 0.1040063259227213
+    },
+    {
+      "category": "fNIRS HBR delta",
+      "mean_abs_shap": 0.10351112856887934
+    },
+    {
+      "category": "fNIRS HBO delta",
+      "mean_abs_shap": 0.09787559320368756
+    },
+    {
+      "category": "EEG delta",
+      "mean_abs_shap": 0.09214218350133009
+    },
+    {
+      "category": "fNIRS HBO slope",
+      "mean_abs_shap": 0.08714409097801822
+    },
+    {
+      "category": "EEG beta",
+      "mean_abs_shap": 0.07658233722259253
     },
     {
       "category": "EEG theta",
-      "mean_abs_shap": 0.024447735585268998
+      "mean_abs_shap": 0.06929136981381245
+    },
+    {
+      "category": "EEG alpha",
+      "mean_abs_shap": 0.06355395082999736
     },
     {
       "category": "EEG engage",
-      "mean_abs_shap": 0.022789517076138868
+      "mean_abs_shap": 0.05635175322678014
     }
   ],
   "per_class": {
-    "High (3-back)": [
+    "Low": [
       {
-        "category": "fNIRS HBO skew",
-        "mean_abs_shap": 0.3140330116418436,
-        "share": 0.0970525053278451
-      },
-      {
-        "category": "fNIRS HBO early",
-        "mean_abs_shap": 0.2911432942705585,
-        "share": 0.0899783942160389
-      },
-      {
-        "category": "fNIRS HBO slope",
-        "mean_abs_shap": 0.2643245029624483,
-        "share": 0.0816899952585265
-      },
-      {
-        "category": "fNIRS HBO max",
-        "mean_abs_shap": 0.2538426831636149,
-        "share": 0.0784505687200453
-      },
-      {
-        "category": "fNIRS HBO delta",
-        "mean_abs_shap": 0.2405985170874849,
-        "share": 0.0743574337596594
-      },
-      {
-        "category": "fNIRS HBO mean",
-        "mean_abs_shap": 0.2383810889645834,
-        "share": 0.0736721333398505
-      },
-      {
-        "category": "fNIRS HBO kurt",
-        "mean_abs_shap": 0.2355007894115318,
-        "share": 0.0727819712315524
-      },
-      {
-        "category": "fNIRS HBO late",
-        "mean_abs_shap": 0.2181255840177559,
-        "share": 0.0674121306366563
-      },
-      {
-        "category": "fNIRS HBO ptp",
-        "mean_abs_shap": 0.2179648523458198,
-        "share": 0.0673624562047697
+        "category": "fNIRS HBR auc",
+        "mean_abs_shap": 0.4570840527782398,
+        "share": 0.07462432568916073
       },
       {
         "category": "fNIRS HBO auc",
-        "mean_abs_shap": 0.2142794139665262,
-        "share": 0.0662234643960048
+        "mean_abs_shap": 0.3348620504088447,
+        "share": 0.05467015214983544
       },
       {
-        "category": "fNIRS HBO std",
-        "mean_abs_shap": 0.2016380825154271,
-        "share": 0.0623166366341894
+        "category": "fNIRS HBR power",
+        "mean_abs_shap": 0.3090229287861125,
+        "share": 0.050451612877295764
+      },
+      {
+        "category": "fNIRS HBO max",
+        "mean_abs_shap": 0.2923154415939339,
+        "share": 0.047723919889324666
+      },
+      {
+        "category": "fNIRS HBR max",
+        "mean_abs_shap": 0.28085899797664443,
+        "share": 0.0458535212732721
       },
       {
         "category": "fNIRS HBO min",
-        "mean_abs_shap": 0.1792365089383589,
-        "share": 0.0553933872994344
+        "mean_abs_shap": 0.27630278593944263,
+        "share": 0.04510966628881921
+      },
+      {
+        "category": "fNIRS HBO late",
+        "mean_abs_shap": 0.26200400667789686,
+        "share": 0.04277522308502471
+      },
+      {
+        "category": "fNIRS HBO mean",
+        "mean_abs_shap": 0.2609352964789092,
+        "share": 0.04260074362665849
       },
       {
         "category": "fNIRS HBO power",
-        "mean_abs_shap": 0.1740429706714168,
-        "share": 0.0537883143241841
+        "mean_abs_shap": 0.25655076009701394,
+        "share": 0.04188491670386434
       },
       {
-        "category": "EEG alpha",
-        "mean_abs_shap": 0.0409008260703082,
-        "share": 0.0126404788443997
+        "category": "fNIRS HBR min",
+        "mean_abs_shap": 0.25284916884313396,
+        "share": 0.04128058857292492
       },
       {
-        "category": "EEG delta",
-        "mean_abs_shap": 0.0357712657823014,
-        "share": 0.0110551783864049
+        "category": "fNIRS HBO early",
+        "mean_abs_shap": 0.24960456237578696,
+        "share": 0.04075086856129737
+      },
+      {
+        "category": "fNIRS HBR mean",
+        "mean_abs_shap": 0.23772198799669436,
+        "share": 0.03881089910688
+      },
+      {
+        "category": "fNIRS HBR late",
+        "mean_abs_shap": 0.2352946622629484,
+        "share": 0.038414609748264765
+      },
+      {
+        "category": "fNIRS HBR early",
+        "mean_abs_shap": 0.2268096821352111,
+        "share": 0.03702933735324309
+      },
+      {
+        "category": "fNIRS HBO ptp",
+        "mean_abs_shap": 0.2106918908711378,
+        "share": 0.03439791913296303
+      },
+      {
+        "category": "fNIRS HBR ptp",
+        "mean_abs_shap": 0.20017535571037268,
+        "share": 0.032680971582094966
+      },
+      {
+        "category": "fNIRS HBR std",
+        "mean_abs_shap": 0.177662820395056,
+        "share": 0.029005536490348306
+      },
+      {
+        "category": "fNIRS HBO std",
+        "mean_abs_shap": 0.17692315280931092,
+        "share": 0.028884777092848313
+      },
+      {
+        "category": "fNIRS HBR skew",
+        "mean_abs_shap": 0.15691490778689055,
+        "share": 0.02561819672552575
+      },
+      {
+        "category": "fNIRS HBO skew",
+        "mean_abs_shap": 0.14734523389594031,
+        "share": 0.02405583536805394
+      },
+      {
+        "category": "fNIRS HBR kurt",
+        "mean_abs_shap": 0.13228864493173795,
+        "share": 0.021597670853665197
+      },
+      {
+        "category": "fNIRS HBO kurt",
+        "mean_abs_shap": 0.12953644726266383,
+        "share": 0.021148342346206682
+      },
+      {
+        "category": "fNIRS HBR slope",
+        "mean_abs_shap": 0.1109212095836804,
+        "share": 0.01810918674474981
       },
       {
         "category": "EEG gamma",
-        "mean_abs_shap": 0.030382723233102,
-        "share": 0.0093898389632301
+        "mean_abs_shap": 0.10400632593309728,
+        "share": 0.016980250991014117
       },
       {
-        "category": "EEG theta",
-        "mean_abs_shap": 0.0303209755122943,
-        "share": 0.009370755711532
+        "category": "fNIRS HBR delta",
+        "mean_abs_shap": 0.10351112862577924,
+        "share": 0.016899404230080135
+      },
+      {
+        "category": "fNIRS HBO delta",
+        "mean_abs_shap": 0.0978755932305563,
+        "share": 0.01597933706473113
+      },
+      {
+        "category": "EEG delta",
+        "mean_abs_shap": 0.09214218351949324,
+        "share": 0.015043290770866349
+      },
+      {
+        "category": "fNIRS HBO slope",
+        "mean_abs_shap": 0.08714409086236377,
+        "share": 0.014227293599223197
       },
       {
         "category": "EEG beta",
-        "mean_abs_shap": 0.0298948893542561,
-        "share": 0.0092390729661196
+        "mean_abs_shap": 0.07658233720663774,
+        "share": 0.01250296359938404
+      },
+      {
+        "category": "EEG theta",
+        "mean_abs_shap": 0.06929136983807456,
+        "share": 0.011312627773415788
+      },
+      {
+        "category": "EEG alpha",
+        "mean_abs_shap": 0.06355395085783504,
+        "share": 0.010375926919395206
       },
       {
         "category": "EEG engage",
-        "mean_abs_shap": 0.0253202884762727,
-        "share": 0.007825283779556
+        "mean_abs_shap": 0.05635175320647701,
+        "share": 0.00920008378956848
       }
     ],
-    "Low (0-back)": [
+    "High": [
       {
-        "category": "fNIRS HBO skew",
-        "mean_abs_shap": 0.4389201001085883,
-        "share": 0.0987421227051594
-      },
-      {
-        "category": "fNIRS HBO early",
-        "mean_abs_shap": 0.4168449789971915,
-        "share": 0.093775969829104
-      },
-      {
-        "category": "fNIRS HBO slope",
-        "mean_abs_shap": 0.373938817334544,
-        "share": 0.084123539970794
-      },
-      {
-        "category": "fNIRS HBO max",
-        "mean_abs_shap": 0.3586437578450565,
-        "share": 0.0806826708000268
-      },
-      {
-        "category": "fNIRS HBO mean",
-        "mean_abs_shap": 0.3393718569538462,
-        "share": 0.0763471473138826
-      },
-      {
-        "category": "fNIRS HBO kurt",
-        "mean_abs_shap": 0.3321605030618914,
-        "share": 0.0747248374887149
-      },
-      {
-        "category": "fNIRS HBO delta",
-        "mean_abs_shap": 0.3283816891021675,
-        "share": 0.0738747326254409
+        "category": "fNIRS HBR auc",
+        "mean_abs_shap": 0.4570840535390767,
+        "share": 0.0746243257674178
       },
       {
         "category": "fNIRS HBO auc",
-        "mean_abs_shap": 0.3064698570325774,
-        "share": 0.0689453142406938
+        "mean_abs_shap": 0.3348620507996541,
+        "share": 0.05467015217997026
       },
       {
-        "category": "fNIRS HBO late",
-        "mean_abs_shap": 0.3014346714045745,
-        "share": 0.0678125684015297
-      },
-      {
-        "category": "fNIRS HBO ptp",
-        "mean_abs_shap": 0.2989025188207676,
-        "share": 0.0672429200279952
-      },
-      {
-        "category": "fNIRS HBO std",
-        "mean_abs_shap": 0.2853572884562609,
-        "share": 0.0641957030097022
-      },
-      {
-        "category": "fNIRS HBO min",
-        "mean_abs_shap": 0.2446919884598925,
-        "share": 0.055047390956802
-      },
-      {
-        "category": "fNIRS HBO power",
-        "mean_abs_shap": 0.2379171681438248,
-        "share": 0.053523286367404
-      },
-      {
-        "category": "EEG delta",
-        "mean_abs_shap": 0.0357378013246913,
-        "share": 0.0080397921233095
-      },
-      {
-        "category": "EEG beta",
-        "mean_abs_shap": 0.0306157690074036,
-        "share": 0.006887508727201
-      },
-      {
-        "category": "EEG theta",
-        "mean_abs_shap": 0.0296832173694714,
-        "share": 0.0066777162655689
-      },
-      {
-        "category": "EEG gamma",
-        "mean_abs_shap": 0.0294567395773892,
-        "share": 0.0066267664504881
-      },
-      {
-        "category": "EEG alpha",
-        "mean_abs_shap": 0.028796565827741,
-        "share": 0.0064782497674327
-      },
-      {
-        "category": "EEG engage",
-        "mean_abs_shap": 0.0277898057623844,
-        "share": 0.0062517629287495
-      }
-    ],
-    "Medium (2-back)": [
-      {
-        "category": "fNIRS HBO skew",
-        "mean_abs_shap": 0.1614168998299156,
-        "share": 0.0962209355432379
-      },
-      {
-        "category": "fNIRS HBO early",
-        "mean_abs_shap": 0.1521319970078684,
-        "share": 0.0906861864747896
-      },
-      {
-        "category": "fNIRS HBO slope",
-        "mean_abs_shap": 0.1359637705423804,
-        "share": 0.0810482744703871
+        "category": "fNIRS HBR power",
+        "mean_abs_shap": 0.3090229290674733,
+        "share": 0.05045161289215987
       },
       {
         "category": "fNIRS HBO max",
-        "mean_abs_shap": 0.1315637436852015,
-        "share": 0.0784254096956377
+        "mean_abs_shap": 0.2923154419225647,
+        "share": 0.04772391991358604
       },
       {
-        "category": "fNIRS HBO mean",
-        "mean_abs_shap": 0.1240354832552187,
-        "share": 0.0739377986564631
-      },
-      {
-        "category": "fNIRS HBO kurt",
-        "mean_abs_shap": 0.1231718143769074,
-        "share": 0.0734229639176082
-      },
-      {
-        "category": "fNIRS HBO delta",
-        "mean_abs_shap": 0.1224476428921948,
-        "share": 0.0729912838529669
-      },
-      {
-        "category": "fNIRS HBO late",
-        "mean_abs_shap": 0.1128555915029755,
-        "share": 0.0672734429117642
-      },
-      {
-        "category": "fNIRS HBO auc",
-        "mean_abs_shap": 0.1125937631201955,
-        "share": 0.0671173664912072
-      },
-      {
-        "category": "fNIRS HBO ptp",
-        "mean_abs_shap": 0.1116933260830372,
-        "share": 0.0665806141796187
-      },
-      {
-        "category": "fNIRS HBO std",
-        "mean_abs_shap": 0.1042144365459133,
-        "share": 0.0621224332280277
+        "category": "fNIRS HBR max",
+        "mean_abs_shap": 0.2808589982190813,
+        "share": 0.04585352128461321
       },
       {
         "category": "fNIRS HBO min",
-        "mean_abs_shap": 0.0918256519504881,
-        "share": 0.0547374540513025
+        "mean_abs_shap": 0.27630278561861094,
+        "share": 0.04510966620865825
+      },
+      {
+        "category": "fNIRS HBO late",
+        "mean_abs_shap": 0.26200400659391426,
+        "share": 0.042775223044969835
+      },
+      {
+        "category": "fNIRS HBO mean",
+        "mean_abs_shap": 0.26093529665674214,
+        "share": 0.042600743629455526
       },
       {
         "category": "fNIRS HBO power",
-        "mean_abs_shap": 0.0892299704482095,
-        "share": 0.0531901631370012
+        "mean_abs_shap": 0.2565507604209368,
+        "share": 0.04188491673095312
       },
       {
-        "category": "EEG beta",
-        "mean_abs_shap": 0.0234331178108534,
-        "share": 0.0139685282075858
+        "category": "fNIRS HBR min",
+        "mean_abs_shap": 0.2528491694195515,
+        "share": 0.0412805886416086
       },
       {
-        "category": "EEG delta",
-        "mean_abs_shap": 0.0190710045222708,
-        "share": 0.0113682637866034
+        "category": "fNIRS HBO early",
+        "mean_abs_shap": 0.249604562558209,
+        "share": 0.0407508685659829
+      },
+      {
+        "category": "fNIRS HBR mean",
+        "mean_abs_shap": 0.23772198831669383,
+        "share": 0.03881089913522141
+      },
+      {
+        "category": "fNIRS HBR late",
+        "mean_abs_shap": 0.2352946621491962,
+        "share": 0.0384146097060352
+      },
+      {
+        "category": "fNIRS HBR early",
+        "mean_abs_shap": 0.22680968203781796,
+        "share": 0.037029337314537475
+      },
+      {
+        "category": "fNIRS HBO ptp",
+        "mean_abs_shap": 0.21069189099097713,
+        "share": 0.03439791913134375
+      },
+      {
+        "category": "fNIRS HBR ptp",
+        "mean_abs_shap": 0.2001753558287853,
+        "share": 0.032680971581300164
+      },
+      {
+        "category": "fNIRS HBR std",
+        "mean_abs_shap": 0.17766282064424566,
+        "share": 0.02900553651316796
+      },
+      {
+        "category": "fNIRS HBO std",
+        "mean_abs_shap": 0.1769231531764377,
+        "share": 0.028884777134996955
+      },
+      {
+        "category": "fNIRS HBR skew",
+        "mean_abs_shap": 0.15691490769691593,
+        "share": 0.02561819669505901
+      },
+      {
+        "category": "fNIRS HBO skew",
+        "mean_abs_shap": 0.14734523382037498,
+        "share": 0.024055835340901884
+      },
+      {
+        "category": "fNIRS HBR kurt",
+        "mean_abs_shap": 0.13228864490039902,
+        "share": 0.021597670835247513
+      },
+      {
+        "category": "fNIRS HBO kurt",
+        "mean_abs_shap": 0.12953644729214808,
+        "share": 0.02114834233799582
+      },
+      {
+        "category": "fNIRS HBR slope",
+        "mean_abs_shap": 0.11092120972503847,
+        "share": 0.018109186756675368
       },
       {
         "category": "EEG gamma",
-        "mean_abs_shap": 0.0185168079802293,
-        "share": 0.0110379061238912
+        "mean_abs_shap": 0.10400632591234532,
+        "share": 0.016980250977168584
       },
       {
-        "category": "EEG engage",
-        "mean_abs_shap": 0.0152584569897595,
-        "share": 0.0090955966075915
+        "category": "fNIRS HBR delta",
+        "mean_abs_shap": 0.10351112851197945,
+        "share": 0.01689940420109325
       },
       {
-        "category": "EEG alpha",
-        "mean_abs_shap": 0.0148027787844794,
-        "share": 0.0088239659216787
+        "category": "fNIRS HBO delta",
+        "mean_abs_shap": 0.09787559317681883,
+        "share": 0.01597933704611676
+      },
+      {
+        "category": "EEG delta",
+        "mean_abs_shap": 0.09214218348316694,
+        "share": 0.015043290755671028
+      },
+      {
+        "category": "fNIRS HBO slope",
+        "mean_abs_shap": 0.08714409109367266,
+        "share": 0.014227293628225
+      },
+      {
+        "category": "EEG beta",
+        "mean_abs_shap": 0.07658233723854732,
+        "share": 0.012502963596893525
       },
       {
         "category": "EEG theta",
-        "mean_abs_shap": 0.0133390138740413,
-        "share": 0.0079514127426366
+        "mean_abs_shap": 0.06929136978955035,
+        "share": 0.0113126277585266
+      },
+      {
+        "category": "EEG alpha",
+        "mean_abs_shap": 0.06355395080215968,
+        "share": 0.01037592690391539
+      },
+      {
+        "category": "EEG engage",
+        "mean_abs_shap": 0.056351753247083275,
+        "share": 0.009200083790531926
       }
     ]
   }

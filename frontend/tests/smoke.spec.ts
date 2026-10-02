@@ -15,10 +15,10 @@ import { test, expect, type ConsoleMessage, type Page } from "@playwright/test";
 
 const ROUTES = [
   { path: "/", name: "Landing", expect: /Reading mental workload/i },
+  { path: "/dashboard", name: "Dashboard", expect: /Model dashboard/i },
   { path: "/overview", name: "Overview", expect: /Reading mental workload|Performance Comparison/i },
   { path: "/workflow", name: "Workflow", expect: /From two brain signals/i },
   { path: "/methodology", name: "Methodology", expect: /Methodology/i },
-  { path: "/research", name: "Research", expect: /./ },
   { path: "/live", name: "Live Prediction", expect: /./ },
   { path: "/session", name: "Session Trend", expect: /./ },
   { path: "/upload", name: "Upload Data", expect: /./ },

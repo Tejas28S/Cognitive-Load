@@ -53,7 +53,7 @@ class Config:
     SUBJECT_COLUMN = "subject_id"
     SPLIT_GROUP_COLUMNS = ["subject_id"]
 
-    BINARY_CLASSIFICATION = False
+    BINARY_CLASSIFICATION = True
 
     if BINARY_CLASSIFICATION:
         CLASS_NAMES = ["Low (0-back)", "High (3-back)"]
@@ -106,14 +106,14 @@ class Config:
 
     EPOCHS = 35
     BATCH_SIZE = 16
-    LEARNING_RATE = 3e-4
-    OPTIMIZER = "adamw"
-    WEIGHT_DECAY = 0.01
+    LEARNING_RATE = 3e-5
+    OPTIMIZER = "lion"
+    WEIGHT_DECAY = 0.1
     LR_PATIENCE = 4
     EARLY_STOP = 7
     USE_CLASS_WEIGHTS = True
     CLASS_WEIGHT_MODE = "manual"  # "manual", "balanced", or "balanced_medium_boost"
-    if getattr(sys.modules[__name__], "BINARY_CLASSIFICATION", False): # Use getattr since we defined it inside class Config
+    if BINARY_CLASSIFICATION:
         CLASS_WEIGHTS = [1.0, 1.0]
     else:
         CLASS_WEIGHTS = [1.08, 1.30, 1.10]

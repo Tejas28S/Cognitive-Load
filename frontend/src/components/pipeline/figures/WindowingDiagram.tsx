@@ -6,7 +6,7 @@ import { DATASET } from "../../../lib/projectFacts";
  * forward in 5-second steps, so consecutive windows overlap by half.
  *
  * The overlap is the point of the figure. It is also precisely why the leakage
- * audit checks *window identity* and not just subject identity — two
+ * audit checks *window identity* and not just subject identity: two
  * overlapping windows share raw samples, so letting one into train and its
  * neighbour into test would leak, even with the subject split done correctly.
  */

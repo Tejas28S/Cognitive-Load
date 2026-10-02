@@ -139,7 +139,11 @@ def train_fold(spec, schema, n_classes, split, domains=None, seed=42,
     domain_criterion = nn.CrossEntropyLoss()
 
     opt_name = spec.get("optimizer", "adamw").lower()
-    opt_cls = {"adam": torch.optim.Adam, "adamw": torch.optim.AdamW}[opt_name]
+    if opt_name == "lion":
+        from lion_pytorch import Lion
+        opt_cls = Lion
+    else:
+        opt_cls = {"adam": torch.optim.Adam, "adamw": torch.optim.AdamW}[opt_name]
     optimizer = opt_cls(
         model.parameters(),
         lr=float(spec.get("lr", 3e-4)),
@@ -164,6 +168,23 @@ def train_fold(spec, schema, n_classes, split, domains=None, seed=42,
     patience = int(spec.get("early_stop_patience", 12))
     min_delta = float(spec.get("early_stop_min_delta", 1e-4))
     noise = float(spec.get("augment_noise", 0.0))
+    # Mixup (Zhang et al., 2018): train on convex combinations of pairs of
+    # windows and the matching combination of their losses. It is opt-in and
+    # defaults to 0.0, so every previously recorded experiment is byte-for-byte
+    # unaffected. The point of having it here is that it attacks memorisation
+    # specifically rather than capacity: the network can no longer fit hard
+    # labels on individual training rows, but nothing about its ability to
+    # separate the classes is removed. Train-set accuracy is still measured
+    # separately on CLEAN rows in eval mode (tr_eval_loader below), so the
+    # train/held-out gap it produces is a real fit measure, not an artefact of
+    # scoring the model on its own mixed inputs.
+    mixup_alpha = float(spec.get("mixup_alpha", 0.0))
+    if mixup_alpha > 0 and use_dann:
+        raise ValueError(
+            "mixup_alpha with use_dann is not supported: the domain labels of a "
+            "mixed row are undefined. Set one or the other."
+        )
+    mix_rng = np.random.default_rng(int(spec.get("mixup_seed", 12345)))
 
     history = {k: [] for k in (
         "epoch", "lr", "train_loss", "train_accuracy", "train_precision_macro",
@@ -196,6 +217,15 @@ def train_fold(spec, schema, n_classes, split, domains=None, seed=42,
                 loss = criterion(logits, y) + d_loss
                 dom_loss_sum += float(d_loss.detach()) * y.size(0)
                 dom_n += y.size(0)
+            elif mixup_alpha > 0:
+                # One shared lambda per batch, both modalities mixed with the
+                # SAME permutation so a mixed row stays one coherent trial pair.
+                m = float(mix_rng.beta(mixup_alpha, mixup_alpha))
+                perm = torch.randperm(y.size(0), device=y.device)
+                eeg = m * eeg + (1.0 - m) * eeg[perm]
+                fnirs = m * fnirs + (1.0 - m) * fnirs[perm]
+                logits = model(eeg, fnirs)
+                loss = m * criterion(logits, y) + (1.0 - m) * criterion(logits, y[perm])
             else:
                 loss = criterion(model(eeg, fnirs), y)
 

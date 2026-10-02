@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { NavLink, Route, Routes, Link, useLocation } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, Link, useLocation } from "react-router-dom";
 import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import Overview from "./pages/Overview";
 import Workflow from "./pages/Workflow";
-import Research from "./pages/Research";
 import LivePrediction from "./pages/LivePrediction";
 import SessionTrend from "./pages/SessionTrend";
 import ModelInsights from "./pages/ModelInsights";
@@ -26,10 +26,13 @@ import NavDropdown from "./components/NavDropdown";
 const isMac =
   typeof navigator !== "undefined" && /mac/i.test(navigator.platform || "");
 
-// Reading order of the site, not a decorative grouping: what/why (Overview),
-// how it was built (Workflow), how it's validated (Methodology), try it and get
-// a report (Assess), the full quantitative record (Evidence), the narrative
-// dossier (Research), and the plain-language context (About).
+// Reading order of the site, not a decorative grouping: the model at a glance
+// (Dashboard), what/why (Overview), how it was built (Workflow), how it's
+// validated (Methodology), try it and get a report (Assess), the full
+// quantitative record (Evidence), and the plain-language context (About).
+//
+// Dashboard leads because it is the only page that answers "how good is it, and
+// where does it fail" without asking the reader to pick a sub-page first.
 const ASSESS_ITEMS = [
   { to: "/live", label: "Live Prediction", hint: "Run a held-out window, get a report" },
   { to: "/session", label: "Session Trend", hint: "Play back a subject's trials" },
@@ -64,12 +67,12 @@ export default function App() {
             <span className="brand-word">Cognitive&nbsp;Load</span>
           </Link>
           <div className="nav-links">
+            <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/overview">Overview</NavLink>
             <NavLink to="/workflow">Workflow</NavLink>
             <NavLink to="/methodology">Methodology</NavLink>
             <NavDropdown label="Assess" items={ASSESS_ITEMS} />
             <NavDropdown label="Evidence" items={EVIDENCE_ITEMS} />
-            <NavLink to="/research">Research</NavLink>
             <NavDropdown label="About" items={ABOUT_ITEMS} />
           </div>
           <div className="nav-tools">
@@ -95,9 +98,9 @@ export default function App() {
       <main key={location.pathname} className="route-view">
         <Routes location={location}>
           <Route path="/" element={<Landing />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/overview" element={<Overview />} />
           <Route path="/workflow" element={<Workflow />} />
-          <Route path="/research" element={<Research />} />
           <Route path="/live" element={<LivePrediction />} />
           <Route path="/session" element={<SessionTrend />} />
           <Route path="/upload" element={<UploadData />} />
@@ -105,6 +108,10 @@ export default function App() {
           <Route path="/evaluation" element={<EvaluationMetrics />} />
           <Route path="/runs" element={<RunHistory />} />
           <Route path="/methodology" element={<Methodology />} />
+          {/* The research dossier was removed; its material now lives on
+              Methodology, the run archive and the dashboard. Existing links and
+              bookmarks land on Overview rather than a blank page. */}
+          <Route path="/research" element={<Navigate to="/overview" replace />} />
           <Route path="/about" element={<About />} />
           <Route path="/bios" element={<Bios />} />
           <Route path="/faq" element={<Faq />} />

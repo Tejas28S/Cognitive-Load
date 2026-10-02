@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { uploadCsv, uploadMat, uploadTemplateUrl } from "../api/client";
+import { uploadCsv, uploadMat, uploadTemplateUrl, uploadUniversal } from "../api/client";
 import ExportMenu from "../components/ExportMenu";
 import PredictionReport from "../components/PredictionReport";
 import { stampFilename } from "../lib/exportData";
@@ -50,7 +50,8 @@ export default function UploadData() {
   // New state for raw mat uploads
   const [eegFile, setEegFile] = useState(null);
   const [nirsFile, setNirsFile] = useState(null);
-  const [uploadMode, setUploadMode] = useState("csv"); // 'csv' or 'mat'
+  const [universalFiles, setUniversalFiles] = useState([]);
+  const [uploadMode, setUploadMode] = useState("csv"); // 'csv', 'mat', or 'universal'
 
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
@@ -59,6 +60,7 @@ export default function UploadData() {
   const inputRef = useRef(null);
   const eegInputRef = useRef(null);
   const nirsInputRef = useRef(null);
+  const universalInputRef = useRef(null);
 
   const onUploadCsv = async () => {
     if (!file) return;
@@ -110,6 +112,31 @@ export default function UploadData() {
     }
   };
 
+  const onUploadUniversal = async () => {
+    if (!universalFiles || universalFiles.length === 0) return;
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    setReportRowIndex(null);
+    try {
+      const data = await uploadUniversal(universalFiles, "", version);
+      setResult(data);
+    } catch (e) {
+      const detail = e?.response?.data?.detail;
+      if (detail && typeof detail === "object") {
+        setError({
+          message: detail.message,
+          missing: detail.missing_required || [],
+          unexpected: detail.unexpected_columns || [],
+        });
+      } else {
+        setError({ message: detail || e?.message || "Upload failed", missing: [], unexpected: [] });
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="container">
       <div className="page-header">
@@ -123,6 +150,7 @@ export default function UploadData() {
       <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
         <button className={`btn ${uploadMode === 'csv' ? 'btn-solid' : 'btn-outline'}`} onClick={() => { setUploadMode('csv'); setResult(null); setError(null); }}>Upload Extracted CSV</button>
         <button className={`btn ${uploadMode === 'mat' ? 'btn-solid' : 'btn-outline'}`} onClick={() => { setUploadMode('mat'); setResult(null); setError(null); }}>Upload Raw MATLAB (.mat)</button>
+        <button className={`btn ${uploadMode === 'universal' ? 'btn-solid' : 'btn-outline'}`} onClick={() => { setUploadMode('universal'); setResult(null); setError(null); }}>Upload Any Dataset (Universal)</button>
       </div>
 
       {uploadMode === "csv" && (
@@ -292,6 +320,68 @@ export default function UploadData() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <button className="btn btn-solid" disabled={!eegFile || !nirsFile || busy} onClick={onUploadMat}>
               {busy ? "Extracting & Predicting…" : "Upload & Predict"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {uploadMode === "universal" && (
+        <div className="note" style={{ marginBottom: 20 }}>
+          Upload data from <strong>any supported dataset</strong> (e.g. Stroop, Shin) in .csv, .mat, .edf, etc. format. The server will automatically detect the dataset profile and map the channels appropriately.
+        </div>
+      )}
+
+      {uploadMode === "universal" && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div 
+            className="card-flat" 
+            style={{ 
+              border: "2px dashed var(--border-strong)", 
+              borderRadius: "var(--r)",
+              textAlign: "center", 
+              padding: "40px 20px",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 12,
+              transition: "background 0.2s, border-color 0.2s",
+              marginBottom: 20
+            }}
+            onClick={() => universalInputRef.current?.click()}
+          >
+            <div style={{ background: "var(--surface)", width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-sm)" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <div style={{ fontSize: "1.05rem" }}>
+              <span style={{ fontWeight: 600, color: "var(--accent)" }}>Click to browse</span>
+              <span style={{ color: "var(--ink-2)", marginLeft: 6 }}>or select multiple files</span>
+            </div>
+            {universalFiles.length > 0 && (
+              <div className="badge" style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "6px 12px", marginTop: 4 }}>
+                Selected: <span style={{ fontWeight: 600, color: "var(--ink)", marginLeft: 4 }}>{universalFiles.length} file(s)</span>
+              </div>
+            )}
+            <input
+              ref={universalInputRef}
+              type="file"
+              multiple
+              style={{ display: "none" }}
+              onChange={(e) => {
+                setUniversalFiles(Array.from(e.target.files || []));
+                setResult(null);
+                setError(null);
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+            <button className="btn btn-solid" disabled={universalFiles.length === 0 || busy} onClick={onUploadUniversal}>
+              {busy ? "Processing Dataset…" : "Upload & Predict"}
             </button>
           </div>
         </div>

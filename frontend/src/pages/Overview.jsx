@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import MetricsSummaryCard from "../components/MetricsSummaryCard";
-import { getMetrics } from "../api/client";
+import { getAttention, getMetrics, getShap } from "../api/client";
 import { useModelVersion } from "../lib/modelVersion";
 import ModelSwitch from "../components/ModelSwitch";
 import ModelProvenanceNote from "../components/ModelProvenanceNote";
@@ -8,6 +8,7 @@ import { useApi, Loading, ErrorBox } from "../useApi";
 import { fmt, CLASS_COLORS } from "../constants";
 import SignalTrace from "../components/SignalTrace";
 import MetricStat from "../components/research/MetricStat";
+import ShapChart from "../components/ShapChart";
 import GapDumbbell from "../components/GapDumbbell";
 import ArchitectureDiagram from "../components/ArchitectureDiagram";
 import Figure from "../components/research/Figure";
@@ -27,23 +28,23 @@ const TEASERS = [
   {
     stamp: "Scholarship",
     title: "The honest protocol",
-    body: "Literature's 60–90% is usually a binary or within-subject task. This reports 3-class, leave-one-subject-out - and shows exactly why the gap exists.",
-    to: "/research#protocol",
-    go: "Protocol taxonomy →",
+    body: "Literature's 60-90% is usually a binary or within-subject task. This reports leave-one-subject-out, where every test person is genuinely unseen - and shows exactly why the gap exists.",
+    to: "/methodology",
+    go: "Methodology →",
   },
   {
-    stamp: "Novel · declined",
-    title: "Teaching the model to forget who",
-    body: "A domain-adversarial network attacks subject variability directly. Applied with a paired-significance gate, it is correctly not adopted - a mechanistically-explained negative result.",
-    to: "/research#dann",
-    go: "The DANN contribution →",
+    stamp: "On the record",
+    title: "Every run kept, including the failures",
+    body: "58 configurations were trained and scored; none beat the baseline by enough to replace it. The losing arms are archived alongside the winner rather than quietly dropped.",
+    to: "/runs",
+    go: "Run archive →",
   },
   {
     stamp: "Discipline",
     title: "One decision gate, every candidate",
-    body: "HbR features, XGBoost, SVM, DANN - each measured against the served ensemble and adopted only on a clear, significant win. Most were declined, on the record.",
-    to: "/research#gates",
-    go: "Decision gates →",
+    body: "HbR features, XGBoost, SVM, DANN - each measured against the served model and adopted only on a clear, significant win. Most were declined, on the record.",
+    to: "/dashboard#decisions",
+    go: "Decision ledger →",
   },
   {
     stamp: "Deployable",
@@ -61,6 +62,18 @@ export default function Overview() {
   // switch decides which one the headline numbers report.
   const { data: dataBin, loading: lBin, error: errBin } = useApi(() => getMetrics("binary"), []);
   const { data: data3c, loading: l3c, error: err3c } = useApi(() => getMetrics("3class"), []);
+  // Attribution follows the switch, like the headline numbers. It is allowed to
+  // be missing: the section below hides itself rather than blanking the page.
+  const { data: shapData } = useApi(
+    () => getShap(version).catch(() => null),
+    [version]
+  );
+  // The independent second reading the attribution section cites. Optional for
+  // the same reason: a missing artifact drops the aside, never the section.
+  const { data: attentionData } = useApi(
+    () => getAttention(version).catch(() => null),
+    [version]
+  );
 
   const loading = lBin || l3c;
   // Only the *selected* model failing should blank the page.
@@ -82,6 +95,13 @@ export default function Overview() {
     : version === "3class"
       ? ["Low", "Medium", "High"]
       : ["Low", "High"];
+  // 32 families would leave the axis too crowded for Recharts to draw every
+  // label; the tail is all near-zero anyway and the full list lives on Insights.
+  const topFamilies = (shapData?.categories || []).slice(0, 12);
+  const fnirsShare = attentionData?.overall?.fnirs_share;
+  const attentionAside =
+    fnirsShare == null ? "" : ` (${pct(fnirsShare)} of the fusion weight on fNIRS)`;
+
   const heroLabel = `${heroClasses.length}-class`;
   const heroChance = `${Math.round(100 / heroClasses.length)}%`;
 
@@ -107,7 +127,7 @@ export default function Overview() {
           </div>
 
           <div className="hero-actions">
-            <Link to="/research" className="btn-lg btn-solid">Read the research</Link>
+            <Link to="/dashboard" className="btn-lg btn-solid">Open the dashboard</Link>
             <Link to="/live" className="btn-lg btn-on-dark">Try the live demo</Link>
           </div>
 
@@ -166,16 +186,19 @@ export default function Overview() {
               </div>
               {has3c && (
               <div className="card" style={{ marginTop: 18 }}>
-                <h3 style={{ marginTop: 0 }}>Accuracy Jump: 3-Class vs Binary</h3>
+                <h3 style={{ marginTop: 0 }}>3-class vs binary, same LOSO protocol</h3>
                 <p className="card-sub">
-                  The original 3-class baseline failed to generalize. By moving to a <strong>binary</strong> classification (Low vs High) and introducing a 1-second sliding window augmentation, performance surged dramatically.
+                  Each row is one metric measured twice: on the legacy 3-class model,
+                  then on the binary (Low vs High) model trained with 1-second sliding
+                  window augmentation. The dot moves right as the score improves.
                 </p>
                 <GapDumbbell
                   domain={[0.3, 0.7]}
-                  label1="Legacy 3-Class (Baseline)"
-                  label2="Binary Classification (Improved)"
-                  gapLabel="performance gain"
+                  label1="Legacy 3-class"
+                  label2="Binary (served)"
+                  gapLabel="gain"
                   gapDirection="loso-fixed"
+                  gapTone="gain"
                   rows={[
                     { metric: "Macro F1", fixed: ens.f1_mean, loso: losoBin.f1_mean },
                     { metric: "Accuracy", fixed: ens.acc_mean, loso: losoBin.acc_mean },
@@ -193,7 +216,15 @@ export default function Overview() {
               )}
               {has3c && (
               <div className="note info" style={{ marginTop: 16 }}>
-                The gap between the panels shows the dramatic improvement. The grey dot represents the failing <strong>legacy 3-class model</strong> (~40-44%), while the <span style={{ color: "var(--accent)" }}>blue dot</span> represents the new <strong>binary classification model</strong> (~65%) operating on the augmented dataset.
+                Read the accuracy row carefully: chance is {pct(1 / 3)} with three
+                classes and {pct(1 / 2)} with two, so the raw move from{" "}
+                {pct(ens.acc_mean)} to {pct(losoBin.acc_mean)} is not a like-for-like
+                gain. Measured <em>above chance</em> the two are much closer -{" "}
+                {pct(ens.acc_mean - 1 / 3)} against {pct(losoBin.acc_mean - 0.5)}.
+                AUC is the comparison that does not depend on the number of classes,
+                and it moves {fmt(ens.auc_mean, 3)} → {fmt(losoBin.auc_mean, 3)}. The
+                binary task is genuinely the more learnable one, but the headline
+                accuracy overstates by how much.
               </div>
               )}
               <div style={{ display: "flex", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
@@ -234,15 +265,87 @@ export default function Overview() {
                 layer weighs them, and a small classifier outputs a {heroClasses.join(" / ")}{" "}
                 probability.
               </p>
-              <Figure num="0" title="The served Hybrid + Random Forest ensemble." source="model_config.json">
+              <Figure num="0" title="The served model: Hybrid network only (the Random Forest ensemble is retired)." source="model_config.json">
                 <ArchitectureDiagram />
               </Figure>
-              <p style={{ marginTop: 16 }}>
-                Explore a <Link to="/live">single prediction</Link>, watch a{" "}
-                <Link to="/session">session over time</Link>, or read the full{" "}
-                <Link to="/research">research dossier</Link>.
-              </p>
+              <div className="grid grid-2" style={{ marginTop: 18 }}>
+                <div className="note plain">
+                  <strong>The encoders.</strong> Each modality gets its own small
+                  MLP with a residual connection. It compresses a wide, noisy
+                  feature vector into a short embedding that keeps what separates
+                  load levels and discards what only describes a particular
+                  person or session. Keeping them separate - rather than one
+                  encoder over the concatenated 1,476 features - lets EEG and
+                  fNIRS be scaled and regularized on their own terms, so the
+                  slower, lower-dimensional fNIRS signal is not drowned out.
+                </div>
+                <div className="note plain">
+                  <strong>The attention fusion.</strong> The two embeddings rarely
+                  deserve equal weight: on a trial where the EEG is clean but the
+                  fNIRS is motion-corrupted, EEG should carry the decision. A small
+                  gate reads both embeddings together and emits a 0-1 weight for
+                  every dimension of each, scaling them before they are joined. The
+                  vector the classifier sees is therefore a per-trial mixture rather
+                  than a flat concatenation - and those gate values come back with
+                  each prediction, as a record of which modality the model leaned on.
+                </div>
+              </div>
             </Reveal>
+
+            {/* Which signal it leans on */}
+            {shapData?.categories?.length ? (
+              <Reveal as="section" className="card">
+                <h2>Which signal the model leans on</h2>
+                <p>
+                  Feeding a network two very different signals raises an obvious
+                  question: is it using both, or is one of them along for the
+                  ride? This is the answer, measured rather than assumed.
+                </p>
+                <Figure
+                  num="1"
+                  title={`Mean |attribution| by feature family, over ${
+                    shapData.n_windows?.toLocaleString() || "the"
+                  } held-out windows.`}
+                  source="shap.json"
+                >
+                  <ShapChart categories={topFamilies} height={340} />
+                </Figure>
+                <p>
+                  Each bar is one <em>family</em> of inputs - a single kind of
+                  measurement, pooled across every channel that produces it.
+                  &ldquo;fNIRS HbO max&rdquo; is the highest oxygenated-blood level
+                  reached during a window; &ldquo;EEG alpha&rdquo; is power in the
+                  alpha band. The length is how much that family moved the decision on
+                  average, in either direction, so a long bar means the model
+                  relied on it, not that it pushed toward High load.
+                </p>
+                <p>
+                  The ordering is the finding. Response-<em>shape</em> descriptors
+                  from fNIRS take the top places, while EEG band powers sit far
+                  down the list. Two things make that credible rather than
+                  convenient: the fusion layer&apos;s own attention weights reach
+                  the same conclusion by a completely separate route
+                  {attentionAside}, and every family near the top summarises the
+                  size or timing of the blood-oxygenation swing across a window -
+                  exactly what a haemodynamic response to sustained mental effort
+                  should move. The model is reading physiology, not latching onto
+                  one arbitrary column.
+                </p>
+                <p className="stat-sub">
+                  {shapData.method === "integrated_gradients"
+                    ? "Attribution method: integrated gradients computed on the served weights. True SHAP is unavailable in this environment, so a closely related, axiomatically-grounded method is used and named rather than substituted silently."
+                    : "Attribution method: mean absolute SHAP value per feature family."}{" "}
+                  Showing the {topFamilies.length} strongest of{" "}
+                  {shapData.categories.length} families; the full list is on the{" "}
+                  <Link to="/insights">Model Insights</Link> page.
+                </p>
+                <p style={{ marginTop: 16 }}>
+                  Explore a <Link to="/live">single prediction</Link>, watch a{" "}
+                  <Link to="/session">session over time</Link>, or open the full{" "}
+                  <Link to="/dashboard">model dashboard</Link>.
+                </p>
+              </Reveal>
+            ) : null}
           </div>
         )}
       </div>

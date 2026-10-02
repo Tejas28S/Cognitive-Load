@@ -1,0 +1,19 @@
+flowchart TB
+    A["Raw signals<br/>EEG + fNIRS .mat files<br/>per subject, per n-back trial"] --> B["Feature extraction<br/>180 EEG band-power/engagement features<br/>468 HbO fNIRS features"]
+    B --> C["Preprocessing contract<br/>log / signed-log compression<br/>per-subject normalization"]
+    C --> D["Leakage-audited LOSO folds<br/>subject, trial, window and scaler-fit<br/>disjointness checked before every fold"]
+    D --> E{"Leakage check passes?"}
+    E -- "no" --> AB["LeakageError raised<br/>run aborted, nothing reported"]
+    E -- "yes" --> F["Train candidate model<br/>Hybrid CNN/LSTM fusion, per campaign config"]
+    F --> G["Evaluate: 18-subject dev LOSO<br/>+ 8-subject lockbox, held out once"]
+    G --> H{"Beats baseline by<br/>at least 1 standard error?"}
+    H -- "no: reject, log it" --> Z["outputs/runs/target_campaign_log.md<br/>one row per attempt, win or lose"]
+    H -- "yes: promote" --> I["finalize_winner.py<br/>26-fold LOSO + lockbox, paired vs baseline"]
+    I --> J["export_for_serving.py<br/>freeze weights + scaler + RF"]
+    J --> K["serving/ bundle"]
+    K --> L["FastAPI /api/predict"]
+    L --> M["React report: verdict, probabilities,<br/>attention weights, uncertainty"]
+
+    style M fill:#dcfce7,stroke:#15803d
+    style Z fill:#fee2e2,stroke:#b91c1c
+    style AB fill:#fee2e2,stroke:#b91c1c

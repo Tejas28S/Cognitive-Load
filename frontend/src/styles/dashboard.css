@@ -1,0 +1,767 @@
+/* ============================================================================
+   Dashboard - the operations view of the served binary model.
+
+   Every other page on this site reads like a paper. This one reads like the
+   instrument panel beside the experiment: a sticky control rail on the left, a
+   quiet field of measurement panels to its right. It borrows the site's tokens
+   (index.css stays the single source of truth for the palette, and
+   lib/chartTheme.js reads those same tokens for every Recharts figure) and adds
+   only the geometry the panel layout needs.
+
+   Scoped under .dash so nothing here can leak into the article pages.
+   ========================================================================== */
+
+.dash {
+  --rail-w: 236px;
+  --panel-r: 16px;
+  --tile-r: 13px;
+  --gap: 16px;
+
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 26px 24px 88px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* -- Control rail -------------------------------------------------------- */
+/* Same surface and hairline as the measurement panels, so the rail reads as
+   part of the panel field rather than as a separate piece of chrome. It uses
+   the shared tokens, which means dark mode needs no override of its own. */
+.dash-rail {
+  position: sticky;
+  top: 78px;
+  /* A short viewport must still be able to reach the status block at the
+     bottom of the rail, so the rail scrolls inside itself rather than
+     clipping. */
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 16px 16px;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-rail-id {
+  padding: 0 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.dash-rail-id .bundle {
+  font-family: var(--font-sans);
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.dash-rail-id .classes {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+.dash-rail nav {
+  margin-top: 14px;
+}
+.dash-rail nav ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dash-rail nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 0.855rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
+}
+.dash-rail nav a:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.dash-rail nav a.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.dash-rail nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* A two-tone tick: EEG pole over fNIRS pole, lit only on the active row. It
+   marks position in the panel stack, so it carries information, not ornament. */
+.dash-rail nav .tick {
+  flex: 0 0 auto;
+  width: 3px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+.dash-rail nav a.is-active .tick {
+  background: linear-gradient(180deg, var(--eeg), var(--fnirs));
+}
+
+.dash-rail-status {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 9px;
+}
+.dash-rail-status div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.76rem;
+  color: var(--ink-3);
+}
+.dash-rail-status b {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* -- Main column --------------------------------------------------------- */
+.dash-main {
+  min-width: 0;
+  display: grid;
+  gap: 26px;
+}
+
+.dash-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+.dash-head h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 1.2rem + 1.2vw, 2.15rem);
+}
+.dash-head p {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  font-size: 0.96rem;
+}
+.dash-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.dash-chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+/* -- Panels -------------------------------------------------------------- */
+.dash-band {
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: 84px;
+}
+.dash-band-head h2 {
+  margin: 0;
+  font-size: 1.18rem;
+  font-family: var(--font-display);
+}
+.dash-band-head p {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  max-width: 78ch;
+}
+
+.dash-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--panel-r);
+  padding: 20px;
+  min-width: 0;
+}
+.dash-panel > h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+.dash-panel > .sub {
+  margin: 4px 0 16px;
+  font-size: 0.83rem;
+  color: var(--ink-3);
+  line-height: 1.5;
+  max-width: 72ch;
+}
+.dash-panel > .foot {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.79rem;
+  color: var(--ink-3);
+  line-height: 1.55;
+}
+
+.dash-row {
+  display: grid;
+  gap: var(--gap);
+}
+.dash-row.two {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.dash-row.wide-left {
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+}
+.dash-row.wide-right {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+@media (max-width: 900px) {
+  .dash-row.wide-left,
+  .dash-row.wide-right {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* -- Measurement tiles --------------------------------------------------- */
+.dash-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+  gap: var(--gap);
+}
+.dash-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--tile-r);
+  padding: 16px 18px 15px;
+  min-width: 0;
+}
+.dash-tile .k {
+  font-size: 0.79rem;
+  color: var(--ink-3);
+  line-height: 1.3;
+}
+.dash-tile .v {
+  /* Sans, proportional figures: this is a headline number, not a column. */
+  font-family: var(--font-sans);
+  font-size: 1.92rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.06;
+  margin-top: 9px;
+  color: var(--ink);
+}
+.dash-tile .pm {
+  font-size: 0.86rem;
+  font-weight: 450;
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+.dash-tile .s {
+  margin-top: 7px;
+  font-size: 0.77rem;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+/* Orientation track under a secondary tile: how far the value sits along its
+   own 0-1 scale, with a tick at the reference it should be read against. The
+   number itself is printed above, so nothing here is the only way to read it. */
+.tile-meter {
+  margin-top: 14px;
+}
+.tile-meter-track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--paper-edge);
+}
+.tile-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.tile-meter-track i {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--ink-3);
+  transform: translateX(-1px);
+}
+.tile-meter-note {
+  margin-top: 7px;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* Audit checklist - each row is an assertion the pipeline makes, not a feature
+   list, so the tick is the state and the text is the claim. */
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+.checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.checklist .ok {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border-radius: 4px;
+  background: rgba(15, 118, 110, 0.14);
+  position: relative;
+}
+.checklist .ok::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 4px;
+  height: 7px;
+  border: solid var(--ok);
+  border-width: 0 1.6px 1.6px 0;
+  transform: rotate(45deg);
+}
+
+/* The lead tile: same anatomy, more room, and the fold strip underneath. */
+.dash-tile.lead {
+  grid-column: span 2;
+  background: var(--accent-soft);
+  border-color: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px 20px 16px;
+}
+@media (max-width: 620px) {
+  .dash-tile.lead {
+    grid-column: span 1;
+  }
+}
+.dash-tile.lead .v {
+  font-size: 3.1rem;
+  color: var(--accent-ink);
+}
+.dash-tile.lead .k,
+.dash-tile.lead .s {
+  color: var(--accent-ink);
+  opacity: 0.82;
+}
+.dash-tile.lead .pm {
+  color: var(--accent-ink);
+  opacity: 0.62;
+}
+
+/* 26 folds as 26 columns, sorted worst to best. The spread is the point. */
+.fold-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 42px;
+  margin-top: 14px;
+}
+.fold-strip i {
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  opacity: 0.4;
+}
+.fold-strip i.up {
+  opacity: 0.9;
+}
+
+/* -- Delta pill ---------------------------------------------------------- */
+.dash-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--ok);
+}
+.dash-delta.down {
+  background: rgba(185, 28, 28, 0.09);
+  color: var(--stop);
+}
+.dash-delta.flat {
+  background: var(--paper-edge);
+  color: var(--ink-3);
+}
+
+/* -- Verdict pills (the decision ledger) --------------------------------- */
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.verdict::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.verdict.served {
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--ok);
+}
+.verdict.rejected {
+  background: rgba(185, 28, 28, 0.09);
+  color: var(--stop);
+}
+.verdict.held {
+  background: rgba(180, 83, 9, 0.1);
+  color: var(--warn);
+}
+.verdict.off {
+  background: var(--paper-edge);
+  color: var(--ink-3);
+}
+
+/* -- Ledger -------------------------------------------------------------- */
+.ledger {
+  display: grid;
+  gap: 8px;
+}
+.ledger-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 16px;
+  align-items: center;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--tile-r);
+  background: var(--surface-2);
+}
+.ledger-row .name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.ledger-row .why {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.ledger-row .why .mono {
+  color: var(--ink-2);
+}
+
+/* -- Data tables --------------------------------------------------------- */
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.dash-table th,
+.dash-table td {
+  padding: 9px 10px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.dash-table th:first-child,
+.dash-table td:first-child {
+  text-align: left;
+  font-variant-numeric: normal;
+}
+.dash-table thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-3);
+  border-bottom-color: var(--border-strong);
+  white-space: nowrap;
+}
+.dash-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.dash-table td.name {
+  font-weight: 600;
+  color: var(--ink);
+}
+.dash-table .swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 8px;
+}
+.dash-scroll {
+  overflow-x: auto;
+}
+
+/* -- Proportion bar (modality split) ------------------------------------- */
+.split {
+  display: grid;
+  gap: 13px;
+}
+.split-row .lab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+.split-row .lab b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.split-bar {
+  display: flex;
+  height: 22px;
+  /* The 2px gap in the surface colour does the separating - no stroke. */
+  gap: 2px;
+}
+.split-bar span {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.split-bar .eeg {
+  background: var(--eeg);
+  border-radius: 5px 2px 2px 5px;
+}
+.split-bar .fnirs {
+  background: var(--fnirs);
+  border-radius: 2px 5px 5px 2px;
+  justify-content: flex-end;
+}
+.split-key {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.split-key i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 7px;
+}
+
+/* -- Legend shared by the Recharts panels -------------------------------- */
+.dash-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.dash-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.dash-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.dash-legend i.line {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+/* -- Tooltip ------------------------------------------------------------- */
+.dash-tip {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  padding: 9px 11px;
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.dash-tip .t {
+  font-weight: 650;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.dash-tip .n {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* -- Gap ladder (train -> validation -> held-out) ------------------------ */
+.ladder {
+  display: grid;
+  gap: 11px;
+}
+.ladder-row .lab {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  margin-bottom: 5px;
+}
+.ladder-row .lab b {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.ladder-track {
+  height: 9px;
+  border-radius: 5px;
+  background: var(--paper-edge);
+  overflow: hidden;
+}
+.ladder-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--accent);
+}
+.ladder-row.heldout .ladder-fill {
+  background: var(--fnirs);
+}
+
+/* -- Table-view disclosure (every chart has a readable twin) ------------- */
+.dash-tv {
+  margin-top: 14px;
+}
+.dash-tv > summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+.dash-tv > summary::-webkit-details-marker {
+  display: none;
+}
+.dash-tv > summary::before {
+  content: "+";
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+.dash-tv[open] > summary::before {
+  content: "\2013";
+}
+.dash-tv > summary:hover {
+  color: var(--accent);
+}
+.dash-tv > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.dash-tv .dash-scroll {
+  margin-top: 10px;
+}
+
+/* -- Note ---------------------------------------------------------------- */
+.dash-note {
+  border-left: 3px solid var(--border-strong);
+  padding: 2px 0 2px 14px;
+  font-size: 0.84rem;
+  color: var(--ink-2);
+  line-height: 1.6;
+  max-width: 80ch;
+}
+
+/* -- Narrow viewports: the rail unsticks and becomes a header strip ------ */
+@media (max-width: 1080px) {
+  .dash {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .dash-rail {
+    position: static;
+  }
+  .dash-rail {
+    max-height: none;
+    overflow: visible;
+  }
+  /* Scroll-spy navigation is a desktop affordance. On a narrow screen it would
+     push the page title below the fold to save a scroll nobody takes, so the
+     rail keeps only what it says about the model. */
+  .dash-rail nav {
+    display: none;
+  }
+  /* With the nav gone the identity rule and the status rule stack into a
+     double line, so the identity drops its own. */
+  .dash-rail-id {
+    border-bottom: none;
+    padding-bottom: 4px;
+  }
+  .dash-rail-status {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 9px 22px;
+  }
+}
+@media (max-width: 620px) {
+  .dash {
+    padding: 18px 14px 64px;
+  }
+  .dash-panel {
+    padding: 16px;
+  }
+}

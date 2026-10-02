@@ -1,13 +1,24 @@
-// Hand-drawn architecture of the served model: two modality encoders fuse under
-// a learned attention gate into a small classifier head (the Hybrid net), whose
-// softmax is probability-averaged (½·½) with a Random Forest over the same
-// features - the locked Hybrid+RF ensemble. Inputs carry the modality colors.
+import { useModelVersion } from "../lib/modelVersion";
+import { colorForLabel } from "../constants";
+import { FEATURES } from "../lib/projectFacts";
+
+// Hand-drawn architecture of the currently served model: two modality encoders
+// fuse under a learned attention gate into a small classifier head (the Hybrid
+// net) whose softmax is the final prediction. The legacy Random Forest ensemble
+// is disabled in serving (model_service.py sets self.rf = None) - the Hybrid
+// network alone outperformed it, so nothing is averaged in at inference time.
+// Inputs carry the modality colors.
 export default function ArchitectureDiagram() {
+  // The output labels track whichever bundle is being served, so the binary
+  // model does not advertise a Medium class it cannot predict.
+  const { active } = useModelVersion();
+  const classes = active?.class_names?.length ? active.class_names : ["Low", "High"];
+
   return (
     <div className="chart-wrap">
-      <svg viewBox="0 0 940 360" width="100%" role="img"
-        aria-label="EEG and fNIRS features feed two encoders that fuse via attention into a classifier head; a Random Forest over the same features is ensembled with it."
-        style={{ minWidth: 640, fontFamily: "var(--font-sans)" }}>
+      <svg viewBox="0 0 800 220" width="100%" role="img"
+        aria-label={`EEG and fNIRS features feed two encoders that fuse via attention into a classifier head, producing ${classes.join(" / ")} probabilities directly (no ensemble at inference time).`}
+        style={{ minWidth: 560, fontFamily: "var(--font-sans)" }}>
         <defs>
           <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
             <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#9aa4b2" />
@@ -20,16 +31,14 @@ export default function ArchitectureDiagram() {
           <path d="M170,150 C200,150 205,124 232,124" />
           <path d="M366,122 H408" />
           <path d="M542,122 H584" />
-          <path d="M716,122 C752,122 752,150 786,150" />
-          {/* RF branch from raw features */}
-          <path d="M96,190 C96,262 96,262 232,262" />
-          <path d="M366,262 H786" />
-          <path d="M786,262 C812,262 812,182 826,168" transform="translate(0 0)" />
+          <path d="M716,122 H748" />
         </g>
 
         {/* Inputs */}
-        <Node x={22} y={64} w={148} h={44} title="EEG" sub="180 band-power feats" tint="var(--eeg)" />
-        <Node x={22} y={128} w={148} h={44} title="fNIRS · HbO" sub="468 response feats" tint="var(--fnirs)" />
+        <Node x={22} y={64} w={148} h={44} title="EEG"
+          sub={`${FEATURES.eeg.total} band-power feats`} tint="var(--eeg)" />
+        <Node x={22} y={128} w={148} h={44} title="fNIRS · HbO+HbR"
+          sub={`${FEATURES.fnirs.total} response feats`} tint="var(--fnirs)" />
 
         {/* Encoders */}
         <Node x={232} y={98} w={134} h={48} title="EEG encoder" sub="MLP + residual" />
@@ -39,21 +48,16 @@ export default function ArchitectureDiagram() {
         <Node x={408} y={100} w={134} h={44} title="Attention fusion" sub="learned gate" accent />
 
         {/* Head */}
-        <Node x={584} y={100} w={132} h={44} title="Classifier head" sub="→ Hybrid softmax" />
-
-        {/* RF branch */}
-        <Node x={232} y={240} w={134} h={44} title="Random Forest" sub="400 trees, same feats" />
-
-        {/* Ensemble */}
-        <Node x={786} y={128} w={132} h={80} title="Ensemble" sub="½ Hybrid + ½ RF" accent big />
+        <Node x={584} y={100} w={132} h={44} title="Classifier head" sub="→ softmax" accent />
 
         {/* Output labels */}
         <g fontFamily="var(--font-mono)" fontSize="12" fontWeight="600">
-          <text x="852" y="238" textAnchor="middle" fill="var(--low)">Low</text>
-          <text x="852" y="256" textAnchor="middle" fill="var(--medium)">Medium</text>
-          <text x="852" y="274" textAnchor="middle" fill="var(--high)">High</text>
+          {classes.map((c, i) => (
+            <text key={c} x="756" y={116 + i * 18 - (classes.length - 1) * 9} textAnchor="start" fill={colorForLabel(c)}>
+              {c}
+            </text>
+          ))}
         </g>
-        <path d="M852,214 V222" stroke="#c4ccd6" strokeWidth="1.6" markerEnd="url(#ah)" />
       </svg>
     </div>
   );

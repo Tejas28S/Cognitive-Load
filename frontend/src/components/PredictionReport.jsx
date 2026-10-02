@@ -1,9 +1,12 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import ExportMenu from "./ExportMenu";
+import ProbabilityBars from "./ProbabilityBars";
+import ConfusionMatrixChart from "./ConfusionMatrixChart";
+import ClassRecallChart from "./ClassRecallChart";
 import { CLASS_COLORS, CLASS_TINTS, CLASS_NAMES } from "../constants";
 import { stampFilename } from "../lib/exportData";
-import { getMetrics } from "../api/client";
+import { getMetrics, getConfusion } from "../api/client";
 import { useApi } from "../useApi";
 import {
   REPORT_BASIS,
@@ -25,6 +28,7 @@ export default function PredictionReport({ result, classNames, label, version })
   // this component mounts before a prediction exists, so a conditional hook
   // would violate the rules of hooks once `result` later arrives.
   const { data: metrics } = useApi(() => getMetrics(version), [version]);
+  const { data: confusion } = useApi(() => getConfusion("hybrid", version), [version]);
 
   if (!result) return null;
 
@@ -61,7 +65,10 @@ export default function PredictionReport({ result, classNames, label, version })
       overall_loso_accuracy: overallAcc,
       overall_loso_accuracy_std: overallAccStd,
       per_subject_spread: perSubject || null,
+      per_class: metrics?.per_class || null,
+      confusion_matrix: confusion ? { labels: confusion.labels, matrix: confusion.matrix } : null,
     },
+    probabilities: result.probabilities,
     workload_management_guidance: guidance,
     limitations: LIMITATIONS,
     disclaimer: FOOTER_DISCLAIMER,
@@ -119,6 +126,15 @@ export default function PredictionReport({ result, classNames, label, version })
         )}
       </div>
 
+      <div className="report-section">
+        <h3>Class probabilities</h3>
+        <ProbabilityBars
+          probabilities={result.probabilities}
+          predicted={cls}
+          classNames={names}
+        />
+      </div>
+
       {meaning && (
         <div className="report-section">
           <h3>What this means</h3>
@@ -161,6 +177,23 @@ export default function PredictionReport({ result, classNames, label, version })
           )}
         </div>
         {perSubject && <p className="muted report-stat-note">{perSubject.note}</p>}
+
+        {metrics?.per_class && (
+          <div style={{ marginTop: 18 }}>
+            <h4 style={{ margin: "0 0 8px 0", fontSize: "0.95rem" }}>Recall by class</h4>
+            <ClassRecallChart perClass={metrics.per_class} highlight={cls} classNames={names} />
+          </div>
+        )}
+
+        {confusion?.matrix && (
+          <div style={{ marginTop: 18 }}>
+            <ConfusionMatrixChart
+              matrix={confusion.matrix}
+              classNames={confusion.labels || names}
+              title="Confusion matrix (26-fold LOSO, all subjects)"
+            />
+          </div>
+        )}
       </div>
 
       {guidance && (

@@ -4,14 +4,14 @@
  * These are fixed properties of the committed artifacts, not measured results:
  * every value here is transcribed from a file in the repo, and the `source`
  * field on each group names it. Measured *performance* numbers are NOT kept
- * here — those are fetched live from the API so the UI can never drift from
+ * here; those are fetched live from the API so the UI can never drift from
  * the run that produced them.
  *
  * Verified against:
- *   serving/feature_schema.json   — channel/band/descriptor counts, preprocessing
- *   serving/model_config.json     — architecture dimensions
- *   RESULTS_BINARY_IMPROVEMENT.md — cohort, window counts, split membership
- *   PROJECT_STATUS.md             — search history
+ *   serving/feature_schema.json:   channel/band/descriptor counts, preprocessing
+ *   serving/model_config.json:     architecture dimensions
+ *   RESULTS_BINARY_IMPROVEMENT.md: cohort, window counts, split membership
+ *   PROJECT_STATUS.md:             search history
  */
 
 export const DATASET = {
@@ -115,7 +115,7 @@ export const LEAKAGE_CHECKS = [
  * of the served configuration rather than a cross-run comparison.
  *
  * If the archive is pruned or the id changes, the figures that use it degrade
- * to an explicit "unavailable" note — they never fall back to stale constants.
+ * to an explicit "unavailable" note; they never fall back to stale constants.
  */
 export const HEADLINE_RUN = {
   runId: "run_20260823_173425_b133",

@@ -1,5 +1,5 @@
 """
-runs_service.py — read-only access to the run archive under outputs/runs/.
+runs_service.py: read-only access to the run archive under outputs/runs/.
 
 Every endpoint built on this returns bytes that a training run wrote to disk.
 Nothing is computed here and nothing is cached across requests beyond a cheap
@@ -85,13 +85,61 @@ class RunsService:
         meta = self.try_read(run_id, "run_metadata.json", {}) or {}
         summary = self.try_read(run_id, "run_summary.json", {}) or {}
         ds = meta.get("dataset", {}) or {}
-        results = (summary.get("results") or {}).get("selected") or {}
-        loso = results.get("loso_all_subjects") or {}
-        lock = results.get("lockbox") or {}
+
+        # run_summary.json has two shapes in the archive: the canonical
+        # pipeline's "selected" schema (results.selected.loso_all_subjects/
+        # lockbox) and the per-candidate "promote" schema that
+        # target_campaign.py writes (results.candidate.loso26/lockbox). Both
+        # name the LOSO block after its own fold count, so try both instead
+        # of assuming the run came from one particular script.
+        results = summary.get("results") or {}
+        candidate_block = results.get("selected") or results.get("candidate") or {}
+        loso = candidate_block.get("loso_all_subjects") or candidate_block.get("loso26") or {}
+        lock = candidate_block.get("lockbox") or {}
 
         def m(block, key):
             v = (block or {}).get(key) or {}
             return v.get("mean") if isinstance(v, dict) else None
+
+        protocol = (summary.get("protocol") or {}).get("headline")
+        if not protocol and loso.get("n_folds"):
+            protocol = f"{loso['n_folds']}-fold LOSO"
+            candidate_name = summary.get("candidate")
+            if candidate_name:
+                protocol += f" ({candidate_name})"
+
+        dataset_name = ds.get("csv_basename") or (summary.get("dataset") or {}).get("name")
+        mode = ds.get("classification_mode")
+        class_names = ds.get("class_names")
+        n_experiments = summary.get("n_experiments")
+        if n_experiments is None:
+            n_experiments = (status.get("summary") or {}).get("n_candidates")
+
+        # run_metadata.json is only written by the canonical pipeline
+        # (research/runctx.py's write_metadata). target_campaign.py and
+        # ensemble_campaign.py never call it, so a run from either one has no
+        # run_metadata.json at all, so recover the same facts from whatever
+        # artifact that script actually wrote, rather than leaving genuinely
+        # known values blank.
+        if not dataset_name or not mode:
+            candidates = self.try_read(
+                run_id, "target_experiments/all_records_summary.json"
+            )
+            if isinstance(candidates, dict) and candidates:
+                first = next(iter(candidates.values()), None) or {}
+                cand_data = first.get("data") or {}
+                dataset_name = dataset_name or cand_data.get("dataset")
+                if mode is None and "binary" in cand_data:
+                    mode = "binary" if cand_data["binary"] else "3class"
+                if n_experiments is None:
+                    n_experiments = len(candidates)
+            else:
+                ens = self.try_read(run_id, "ensemble_dev_summary.json")
+                pooled = (ens or {}).get("pooled") or {}
+                if pooled.get("class_names"):
+                    class_names = class_names or pooled["class_names"]
+                    if mode is None:
+                        mode = "binary" if pooled.get("n_classes") == 2 else "3class"
 
         # A run whose process was killed keeps status "running" forever. Report
         # that as stale rather than rewriting what the run itself recorded.
@@ -120,14 +168,14 @@ class RunsService:
             "updated_at": status.get("updated_at"),
             "error": status.get("error"),
             "warnings": status.get("warnings") or [],
-            "dataset": ds.get("csv_basename") or (summary.get("dataset") or {}).get("name"),
+            "dataset": dataset_name,
             "n_samples": ds.get("n_samples"),
             "n_subjects": ds.get("n_subjects"),
-            "classification_mode": ds.get("classification_mode"),
-            "class_names": ds.get("class_names"),
-            "protocol": (summary.get("protocol") or {}).get("headline"),
+            "classification_mode": mode,
+            "class_names": class_names,
+            "protocol": protocol,
             "selected_experiment": (summary.get("model") or {}).get("selected_experiment"),
-            "n_experiments": summary.get("n_experiments"),
+            "n_experiments": n_experiments,
             "git_commit": (meta.get("git") or {}).get("commit"),
             "metrics": {
                 "loso_f1_macro": m(loso, "f1_macro"),
@@ -176,7 +224,7 @@ class RunsService:
         }
 
     def available_artifacts(self, run_id):
-        """What this run actually produced — the UI hides sections without data."""
+        """What this run actually produced: the UI hides sections without data."""
         checks = {
             "metrics": "metrics/metrics.json",
             "loso": "metrics/loso_metrics.json",

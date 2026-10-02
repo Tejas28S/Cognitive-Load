@@ -35,6 +35,10 @@ cognitive_load/
 ├── protocol_benchmark.py     # protocol taxonomy (within-subject vs LOSO, binary vs 3-class)
 ├── NOVELTY_DANN.md           # writeup of the domain-adversarial contribution
 ├── generate_synthetic_test_csvs.py  # synthetic fixtures for the upload feature
+├── ingestion/                # universal dataset input layer (parser/normalizer/projection)
+├── schema/                   # canonical schema + channel alias registry + dataset profiles
+├── predict.py                # CLI: predict from any supported dataset file
+├── tests/test_ingestion.py   # ingestion suite (incl. TU Berlin regression)
 ├── export_for_serving.py     # packages the frozen model -> serving/ (Part 2)
 ├── serving/                  # COMMITTED portable demo bundle
 │   ├── model_weights.pt, model_config.json, feature_scaler.pkl, label_map.json
@@ -268,14 +272,57 @@ every row, plus a class-distribution summary.
   `subject_id` is absent, the response is flagged
   `"normalization": "global_fallback_no_subject_id"` (a degraded mode, since the
   model was trained with per-subject stats).
-- **Scope:** this is upload-of-correctly-extracted-features only, for
-  TU-Berlin-format data. It does **not** accept raw signals or data from another
-  dataset/device — those would need a separate, dataset-specific feature
-  extraction pipeline first (see Future Work in `RESULTS.md`).
+- **Scope:** this endpoint is upload-of-correctly-extracted-features only, for
+  TU-Berlin-format data. For raw signals or another dataset entirely, see
+  **Universal dataset ingestion** below.
 
 The upload preprocessing is a self-contained reimplementation of the training
 pipeline, verified byte-exact against `data_loader.py` (max abs diff 0.0), so
 uploaded rows get identical predictions to the rest of the app.
+
+## Universal dataset ingestion
+
+A dataset-agnostic input layer sits in front of the model, so a differently
+structured dataset can be read without hand-editing its columns. It is
+**additive** — the endpoints above are unchanged, and the TU Berlin flow is
+covered by a regression test asserting bit-identical predictions.
+
+```bash
+python predict.py --list-datasets
+python predict.py --input any_dataset.csv          # extracted features
+python predict.py --input eeg.mat --input nirs.mat # raw signals, one per modality
+```
+
+```
+raw file -> DatasetParser -> SchemaNormalizer -> ChannelProjector -> [existing extraction] -> [frozen model]
+            reads it        names -> canonical  channels -> bundle       UNCHANGED             UNCHANGED
+```
+
+- **Formats:** `.csv .tsv .txt .mat .npz .npy .edf .bdf`, wide or long layout,
+  with the dataset profile auto-detected from the file's own structure.
+- **Config, not code:** channel spellings live in
+  `schema/channel_aliases.yaml` and file layouts in `schema/datasets/*.yaml`.
+  Onboarding a dataset whose naming varies on known aliases needs no code change.
+- **Every prediction carries a mapping report** saying how each input column was
+  interpreted, which were ignored, and what coverage of the model's expected
+  channels the dataset actually achieved.
+- **It refuses rather than guesses.** Below 70% channel coverage the pipeline
+  returns a structured error naming the missing channels instead of zero-filling
+  them. After the per-subject z-score a zero is a legitimate value, so a
+  zero-filled channel would be indistinguishable from real data — a
+  confident-looking prediction built on fabricated inputs.
+
+Worked example — the Stroop EEG+fNIRS dataset parses and normalizes with no
+manual renaming, projects its EEG at 0.767 coverage (16 exact electrode matches
++ 14 documented neighbour substitutions), and then correctly **refuses** at the
+fNIRS stage: the model expects 36 optode positions and Stroop supplies 20
+frontal ones, with no montage metadata in either to justify a correspondence.
+Predicting for such a dataset requires a bundle trained on its own feature
+space, which this layer also makes possible.
+
+See [`docs/adding_a_new_dataset.md`](docs/adding_a_new_dataset.md) for the
+onboarding guide and [`docs/tu_berlin_assumptions.md`](docs/tu_berlin_assumptions.md)
+for the audit of what was TU Berlin-specific and why.
 
 ## Honest limitations
 

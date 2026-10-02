@@ -36,6 +36,7 @@ export default function ConfusionMatrixChart({ matrix, title, classNames = CLASS
               label={classNames[r]}
               row={row}
               r={r}
+              classNames={classNames}
               cellColor={cellColor}
               textColor={textColor}
             />
@@ -49,7 +50,7 @@ export default function ConfusionMatrixChart({ matrix, title, classNames = CLASS
   );
 }
 
-function RowFragment({ label, row, r, cellColor, textColor }) {
+function RowFragment({ label, row, r, classNames, cellColor, textColor }) {
   return (
     <>
       <div
@@ -68,7 +69,7 @@ function RowFragment({ label, row, r, cellColor, textColor }) {
       {row.map((v, c) => (
         <div
           key={c}
-          title={`True ${label} → predicted ${["Low", "Medium", "High"][c]}: ${v}`}
+          title={`True ${label} → predicted ${classNames[c]}: ${v}`}
           style={{
             height: 56,
             borderRadius: 6,

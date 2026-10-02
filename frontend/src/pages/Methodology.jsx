@@ -128,7 +128,7 @@ export default function Methodology() {
         <Reveal className="card" style={{ marginBottom: 20 }}>
           <h2>Is the model's confidence trustworthy? (calibration)</h2>
           <p className="card-sub">
-            Read-only analysis of the frozen served ensemble over the{" "}
+            Read-only analysis of the frozen served Hybrid network over the{" "}
             {diagnostics.n_windows} held-out demo windows - the served model is
             unchanged. A well-calibrated model's confidence matches its accuracy.
           </p>
