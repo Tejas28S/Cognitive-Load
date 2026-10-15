@@ -1,18 +1,17 @@
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
-from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.metrics import accuracy_score
+from sklearn.feature_selection import SelectKBest, f_classif
 from config import Config
 
 cfg = Config()
 df = pd.read_csv(cfg.MERGED_CSV)
-meta = ["subject_id", "task", "Cognitive_Load"]
-feats = [c for c in df.columns if c not in meta]
+feats = [c for c in df.columns if c.startswith(("eeg_", "hbo_", "hbr_"))]
 X_raw = df[feats].values.astype(float)
 y = df["Cognitive_Load"].values
 groups = df["subject_id"].values
@@ -23,20 +22,24 @@ y = y[mask]
 groups = groups[mask]
 y[y == 2] = 1
 
-def make_ensemble():
+def make_ensemble(k=50):
     return Pipeline([
         ("scaler", RobustScaler()),
-        ("pca", PCA(n_components=80, random_state=42)),
+        ("feature_selection", SelectKBest(score_func=f_classif, k=k)),
         ("clf", VotingClassifier(estimators=[
             ("svm", SVC(kernel="rbf", C=10, gamma="scale", class_weight="balanced", probability=True, random_state=42)),
-            ("rf", RandomForestClassifier(n_estimators=300, min_samples_leaf=4, class_weight="balanced", n_jobs=-1, random_state=42)),
+            ("rf", RandomForestClassifier(n_estimators=100, min_samples_leaf=4, class_weight="balanced", n_jobs=-1, random_state=42)),
             ("gbm", GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, subsample=0.8, random_state=42))
         ], voting="soft", n_jobs=-1))
     ])
 
 logo = LeaveOneGroupOut()
-# Just run ONE fold to get the train/test gap
-for train_idx, test_idx in logo.split(X_raw, y, groups=groups):
+# Run all folds and compute average
+train_accs = []
+test_accs = []
+
+print("Running Leave-One-Group-Out CV for Voting Classifier Ensemble...")
+for fold, (train_idx, test_idx) in enumerate(logo.split(X_raw, y, groups=groups)):
     X_tr_raw = X_raw[train_idx]
     X_te_raw = X_raw[test_idx]
 
@@ -53,6 +56,13 @@ for train_idx, test_idx in logo.split(X_raw, y, groups=groups):
     y_tr_pred = pipe.predict(X_tr)
     y_te_pred = pipe.predict(X_te)
     
-    print(f"Train Accuracy: {accuracy_score(y_tr, y_tr_pred):.4f}")
-    print(f"Test Accuracy: {accuracy_score(y_te, y_te_pred):.4f}")
-    break
+    train_acc = accuracy_score(y_tr, y_tr_pred)
+    test_acc = accuracy_score(y_te, y_te_pred)
+    
+    train_accs.append(train_acc)
+    test_accs.append(test_acc)
+    print(f"Fold {fold+1} - Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+
+print("-" * 30)
+print(f"Average Train Accuracy: {np.mean(train_accs):.4f}")
+print(f"Average Test Accuracy: {np.mean(test_accs):.4f}")

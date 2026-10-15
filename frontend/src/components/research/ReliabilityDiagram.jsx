@@ -9,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import ChartTooltip from "../ChartTooltip";
 import { useChartColors, usePrefersReducedMotion } from "../../lib/chartTheme";
 
 // Reliability (calibration) diagram: for each confidence bin, bar height = the

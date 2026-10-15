@@ -396,8 +396,8 @@ export default function Faq() {
                 to a cached or hardcoded number.
               </p>
               <p>
-                You can browse the underlying runs yourself in the{" "}
-                <A to="/runs">run archive</A>.
+                You can browse model evaluations in the{" "}
+                <A to="/compare">model comparison</A> page.
               </p>
             </>
           ),

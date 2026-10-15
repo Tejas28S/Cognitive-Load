@@ -14,7 +14,7 @@ const PAGES = [
   { to: "/upload", label: "Upload Data", hint: "Predict on a features CSV" },
   { to: "/insights", label: "Model Insights", hint: "Confusion, SHAP, attention" },
   { to: "/evaluation", label: "Evaluation Metrics", hint: "Full metrics for one training run" },
-  { to: "/runs", label: "Run History", hint: "Every run in the archive" },
+  { to: "/compare", label: "Model Comparison", hint: "5 architectures compared side-by-side" },
   { to: "/methodology", label: "Methodology", hint: "Why LOSO ≠ fixed split" },
   { to: "/about", label: "About", hint: "Motivation & working principles" },
   { to: "/bios", label: "Team", hint: "Who built this" },

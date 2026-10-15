@@ -118,8 +118,8 @@ export default function Methodology() {
           study. The binary campaign's decision-gate results - 42 experiments
           selected by a one-standard-error rule against an 18-subject
           development pool, verified on an 8-subject lockbox - are on the{" "}
-          <Link to="/evaluation">Evaluation</Link> and <Link to="/runs">Runs</Link>{" "}
-          pages, sourced directly from the run archive.
+          <Link to="/evaluation">Evaluation</Link> and{" "}
+          <Link to="/compare">Model Comparison</Link> pages.
         </p>
       </Reveal>
       )}

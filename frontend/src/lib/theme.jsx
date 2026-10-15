@@ -59,7 +59,7 @@ export function ThemeProvider({ children }) {
 
   const value = useMemo(
     () => ({ choice, resolved, setTheme, cycle }),
-    [choice, resolved]
+    [choice, resolved, setTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

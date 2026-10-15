@@ -336,6 +336,19 @@ export default function Workflow() {
             See the attributions →
           </Link>
         </Callout>
+
+        <Callout tone="finding" title="Feature selection: 50 features preserve cross-subject accuracy">
+          Selecting the top 50 discriminative physiological features via ANOVA F-score (SelectKBest)
+          cuts cross-subject overfitting drastically — lowering the generalization gap from ~17% to 4.6% in fast linear ensembles
+          while matching 62.25% test accuracy with 58× faster training in the Hybrid neural network.
+          Prefrontal HbO hemodynamics carry the primary transferable signal across subjects.{" "}
+          <Link
+            to="/compare"
+            className="font-medium text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
+          >
+            Compare the models & feature sets →
+          </Link>
+        </Callout>
       </StageSection>
 
       {/* ── 4. Architecture ──────────────────────────────────────────────── */}
@@ -587,12 +600,12 @@ export default function Workflow() {
             >
               evaluation page
             </Link>
-            , browse every archived run on the{" "}
+            , compare all evaluated models on the{" "}
             <Link
-              to="/runs"
+              to="/compare"
               className="font-medium text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
             >
-              run archive
+              model comparison page
             </Link>
             , or see how the honest protocol compares to the literature's
             headline numbers in the{" "}

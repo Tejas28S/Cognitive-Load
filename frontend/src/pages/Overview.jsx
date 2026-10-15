@@ -33,11 +33,11 @@ const TEASERS = [
     go: "Methodology →",
   },
   {
-    stamp: "On the record",
-    title: "Every run kept, including the failures",
-    body: "58 configurations were trained and scored; none beat the baseline by enough to replace it. The losing arms are archived alongside the winner rather than quietly dropped.",
-    to: "/runs",
-    go: "Run archive →",
+    stamp: "Architecture Sweep",
+    title: "5 Model Paradigms Evaluated Side-by-Side",
+    body: "From 5× deep ensembles (66.3% LOSO) to 80-second fast linear classifiers (61.8% LOSO, 4.6% gap) and SelectKBest (k=50) feature selection.",
+    to: "/compare",
+    go: "Model comparison →",
   },
   {
     stamp: "Discipline",

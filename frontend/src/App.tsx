@@ -10,7 +10,7 @@ import ModelInsights from "./pages/ModelInsights";
 import Methodology from "./pages/Methodology";
 import UploadData from "./pages/UploadData";
 import EvaluationMetrics from "./pages/EvaluationMetrics";
-import RunHistory from "./pages/RunHistory";
+import ModelComparison from "./pages/ModelComparison";
 import About from "./pages/About";
 import Bios from "./pages/Bios";
 import Faq from "./pages/Faq";
@@ -26,22 +26,15 @@ import NavDropdown from "./components/NavDropdown";
 const isMac =
   typeof navigator !== "undefined" && /mac/i.test(navigator.platform || "");
 
-// Reading order of the site, not a decorative grouping: the model at a glance
-// (Dashboard), what/why (Overview), how it was built (Workflow), how it's
-// validated (Methodology), try it and get a report (Assess), the full
-// quantitative record (Evidence), and the plain-language context (About).
-//
-// Dashboard leads because it is the only page that answers "how good is it, and
-// where does it fail" without asking the reader to pick a sub-page first.
+// Reading order of the site:
+// Dashboard -> Overview -> Workflow -> Comparison -> Upload -> Methodology -> Assess (Live, Session) -> Evidence (Insights, Eval) -> About
 const ASSESS_ITEMS = [
   { to: "/live", label: "Live Prediction", hint: "Run a held-out window, get a report" },
   { to: "/session", label: "Session Trend", hint: "Play back a subject's trials" },
-  { to: "/upload", label: "Upload Data", hint: "Predict on a features CSV" },
 ];
 const EVIDENCE_ITEMS = [
   { to: "/insights", label: "Model Insights", hint: "Confusion, SHAP, attention" },
   { to: "/evaluation", label: "Evaluation", hint: "Full metrics for one training run" },
-  { to: "/runs", label: "Run Archive", hint: "Every run in the archive" },
 ];
 const ABOUT_ITEMS = [
   { to: "/about", label: "About", hint: "Motivation and working principles" },
@@ -70,6 +63,8 @@ export default function App() {
             <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/overview">Overview</NavLink>
             <NavLink to="/workflow">Workflow</NavLink>
+            <NavLink to="/compare">Comparison</NavLink>
+            <NavLink to="/upload">Upload</NavLink>
             <NavLink to="/methodology">Methodology</NavLink>
             <NavDropdown label="Assess" items={ASSESS_ITEMS} />
             <NavDropdown label="Evidence" items={EVIDENCE_ITEMS} />
@@ -106,7 +101,8 @@ export default function App() {
           <Route path="/upload" element={<UploadData />} />
           <Route path="/insights" element={<ModelInsights />} />
           <Route path="/evaluation" element={<EvaluationMetrics />} />
-          <Route path="/runs" element={<RunHistory />} />
+          <Route path="/runs" element={<Navigate to="/compare" replace />} />
+          <Route path="/compare" element={<ModelComparison />} />
           <Route path="/methodology" element={<Methodology />} />
           {/* The research dossier was removed; its material now lives on
               Methodology, the run archive and the dashboard. Existing links and
