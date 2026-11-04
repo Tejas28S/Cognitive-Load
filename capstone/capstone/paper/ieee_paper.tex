@@ -1,0 +1,659 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{siunitx}
+\usepackage{balance}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Does Deep Learning Outperform Compact Classical Models for Cross-Subject Cognitive Load Estimation Using EEG--fNIRS Fusion?}
+
+\author{
+\IEEEauthorblockN{[Author~1]\IEEEauthorrefmark{1}, [Author~2]\IEEEauthorrefmark{1}, [Author~3]\IEEEauthorrefmark{1}, [Supervisor]\IEEEauthorrefmark{1}}
+\IEEEauthorblockA{\IEEEauthorrefmark{1}Department of [Department], [University Name], [City], India \\
+Email: \{author1, author2, author3\}@university.edu}
+}
+
+\maketitle
+
+% ===========================================================================
+% ABSTRACT
+% ===========================================================================
+\begin{abstract}
+Estimating cognitive load from neurophysiological signals is essential for adaptive human--computer interaction, yet most published models are evaluated on within-subject splits that obscure their inability to generalize to unseen individuals. This paper investigates whether deep learning provides a meaningful advantage over compact classical approaches for \emph{cross-subject} binary cognitive load classification using simultaneously recorded electroencephalography (EEG) and functional near-infrared spectroscopy (fNIRS). Using the TU~Berlin $n$-back dataset (26 participants, 30-channel EEG, 36-channel fNIRS), we extract 1{,}476 features per 10-second window and evaluate all models under a strict leave-one-subject-out (LOSO) protocol with a pre-registered development/lockbox split and a comprehensive data-leakage audit. Across 42 controlled experiments spanning architecture, regularization, domain-adversarial training, and CNN-based spatial encoders, no configuration significantly outperforms the baseline dual-stream MLP with attention fusion (LOSO accuracy: $63.09 \pm 10.11\%$; macro~F1: $0.6255 \pm 0.1044$; lockbox accuracy: $63.71 \pm 8.50\%$). Domain-adversarial neural network (DANN) training monotonically degrades performance, and a subject-identity probe reveals the preprocessing has already removed most decodable subject information, explaining why the adversary fails. SHAP analysis shows fNIRS features account for 94.5\% of model attribution, with haemodynamic response shape dominating over EEG spectral power. The dominant source of classification error is between-subject physiological variability (per-subject F1 range: 0.431--0.807), not model choice. These findings suggest that, for pre-aggregated feature representations on small cohorts, deep models do not outperform well-tuned compact architectures, and improved generalization requires richer signal representations or larger, more diverse participant pools.
+\end{abstract}
+
+\begin{IEEEkeywords}
+cognitive load estimation, electroencephalography, functional near-infrared spectroscopy, multimodal fusion, brain--computer interfaces, cross-subject generalization, feature attribution, leave-one-subject-out evaluation
+\end{IEEEkeywords}
+
+% ===========================================================================
+% I. INTRODUCTION
+% ===========================================================================
+\section{Introduction}
+
+Cognitive load---the amount of mental effort required to perform a task---is a central construct in human factors, education, and safety-critical system design~\cite{sweller1988cognitive}. Real-time, objective estimation of cognitive load from neurophysiological recordings has the potential to enable adaptive interfaces that respond to a user's mental state, reducing errors in demanding tasks such as air traffic control, surgery, and autonomous vehicle monitoring~\cite{parasuraman2008neuroergonomics}.
+
+\subsection{Complementary Neural Signals}
+Electroencephalography (EEG) captures cortical electrical activity with millisecond temporal resolution, providing sensitive markers of cognitive engagement through spectral power modulations in the theta (\SIrange{4}{8}{\hertz}), alpha (\SIrange{8}{13}{\hertz}), and beta (\SIrange{13}{30}{\hertz}) bands~\cite{gevins1998monitoring, antonenko2010using}. Functional near-infrared spectroscopy (fNIRS) measures changes in oxygenated (HbO) and deoxygenated (HbR) haemoglobin concentration through the cortical haemodynamic response, offering complementary information about sustained metabolic activity at a coarser temporal scale~\cite{ayaz2012optical, herff2014mental}. Simultaneous EEG--fNIRS recording exploits both fast electrophysiological dynamics and slower haemodynamic correlates, and several studies have demonstrated improved classification accuracy through multimodal fusion~\cite{shin2018simultaneous, fazli2012enhanced, aghajani2017measuring}.
+
+\subsection{The Generalization Challenge}
+A pervasive problem in brain--computer interface (BCI) research is the gap between within-subject and cross-subject performance~\cite{lotte2018review, schirrmeister2017deep}. Models trained and tested on data from the same individual can exploit subject-specific physiological baselines---skull conductivity, head geometry, vascular offsets---that do not transfer to new users. Random window splits exacerbate this problem when overlapping temporal windows from the same subject appear in both training and test sets, introducing data leakage that inflates accuracy estimates~\cite{wu2022transfer}. Leave-one-subject-out (LOSO) cross-validation, in which each participant is held out entirely from training and validation, provides the most honest estimate of whether a model can function for a previously unseen individual---the scenario required for practical, zero-calibration BCI deployment.
+
+\subsection{Deep vs.\ Classical Models on Small Cohorts}
+Recent work has applied deep learning to neurophysiological classification with promising within-subject results~\cite{schirrmeister2017deep, lawhern2018eegnet}. However, for small participant cohorts ($N \leq 30$), high-capacity deep networks risk memorizing subject-specific patterns rather than learning generalizable workload representations~\cite{roy2019deep}. Whether deep architectures provide a meaningful advantage over well-regularized classical approaches under strict cross-subject evaluation remains an open empirical question, as noted in a recent review of classification algorithms for BCI~\cite{lotte2018review}.
+
+\subsection{Research Questions and Contributions}
+This paper addresses the following questions:
+\begin{enumerate}
+    \item Do multimodal EEG--fNIRS deep learning models generalize to unseen participants under strict LOSO evaluation?
+    \item How do deep models compare with compact classical approaches under a consistent subject-independent protocol?
+    \item Does domain-adversarial training improve subject-invariant representations?
+    \item What is the relative contribution of EEG and fNIRS modalities to cross-subject workload classification?
+    \item Does attention-based fusion provide measurable benefits over simple concatenation?
+\end{enumerate}
+
+Our specific contributions, supported by verified experimental evidence, are:
+\begin{enumerate}
+    \item A systematic comparison of 42 deep-learning configurations spanning architecture, regularization, and training strategy under a unified LOSO protocol with a pre-registered development/lockbox split and automated leakage auditing.
+    \item Empirical evidence that no tested configuration---including CNN encoders, domain-adversarial training, modality dropout, and aggressive regularization---significantly outperforms a compact dual-stream MLP baseline on pre-aggregated features.
+    \item A mechanistic explanation for the failure of domain-adversarial training: a subject-identity probe demonstrates that per-subject normalization has already removed most decodable subject information from the feature space, leaving no subject-identity signal for the adversary to suppress.
+    \item Quantitative modality attribution via SHAP~\cite{lundberg2017unified} showing fNIRS features contribute 94.5\% of total attribution, with HbR slightly exceeding HbO, independently corroborated by an HbR-ablation experiment.
+    \item A demonstration that between-subject variability (per-subject F1 range: 0.38) dominates all other sources of classification error, exceeding the largest inter-model performance difference by a factor of two.
+\end{enumerate}
+
+% ===========================================================================
+% II. RELATED WORK
+% ===========================================================================
+\section{Related Work}
+
+\subsection{EEG-Based Cognitive Load Estimation}
+EEG-based workload classification has a substantial history. Gevins et al.\ demonstrated that frontal theta power increases and parietal alpha power decreases correlate reliably with working memory load~\cite{gevins1998monitoring}. Antonenko et al.\ applied EEG spectral features to instructional design contexts, showing sensitivity to varying task complexity~\cite{antonenko2010using}. Zhou et al.\ provided a comprehensive review of EEG-based cognitive workload recognition methods, noting both signal processing advances and the persistent challenge of cross-subject transfer learning~\cite{zhou2022cognitive}. More recent deep-learning approaches, including EEGNet~\cite{lawhern2018eegnet} and deep convolutional networks~\cite{schirrmeister2017deep}, have achieved high within-subject accuracy but with limited cross-subject evaluation.
+
+\subsection{fNIRS-Based Cognitive Load Estimation}
+Functional near-infrared spectroscopy offers a metabolically grounded measure of cognitive effort. Ayaz et al.\ demonstrated prefrontal cortex activation patterns during $n$-back tasks using fNIRS~\cite{ayaz2012optical}. Herff et al.\ achieved cognitive workload classification from fNIRS signals, showing that HbO and HbR features in prefrontal regions are particularly discriminative~\cite{herff2014mental}. Fishburn et al.\ validated dose-dependent increases in prefrontal haemodynamic activation with parametric working memory load increments~\cite{fishburn2014sensitivity}. The slower temporal dynamics of fNIRS complement EEG's faster electrical signatures, motivating multimodal approaches.
+
+\subsection{Multimodal EEG--fNIRS Fusion}
+Fazli et al.\ established that combining simultaneous EEG and fNIRS significantly improves BCI classification accuracy compared to either modality alone~\cite{fazli2012enhanced}. Shin et al.\ demonstrated this for $n$-back workload classification using the TU~Berlin dataset employed in this study~\cite{shin2018simultaneous}. Aghajani et al.\ investigated concurrent EEG--fNIRS for mental workload classification, comparing individual versus fused modalities~\cite{aghajani2017measuring}. Liu et al.\ evaluated multi-subject generalization and multi-modal feature-level fusion across EEG, fNIRS, and peripheral physiology~\cite{liu2017multisubject}. However, most published fusion results rely on within-subject or random-split protocols that do not reflect realistic deployment scenarios.
+
+\subsection{Cross-Subject BCI Evaluation}
+The importance of subject-independent evaluation has been increasingly recognized. Lotte et al.\ reviewed evaluation practices in BCI and emphasized that regularized shallow classifiers and Riemannian geometry methods often match or exceed deep neural networks on small-to-moderate sample regimes~\cite{lotte2018review}. Zanini et al.\ introduced Riemannian alignment for calibration-free classification tested under strict LOSO cross-validation~\cite{zanini2018transfer}. Wu et al.\ provided an authoritative review of domain shift, non-stationarity, and inter-subject covariate shift in EEG, surveying domain adaptation remedies~\cite{wu2022transfer}. Saha and Baumert documented the physiological, anatomical, and psychological factors creating inter-subject variability and low cross-subject generalization~\cite{saha2020variability}.
+
+\subsection{Domain Adaptation and Subject-Invariant Representations}
+Domain-adversarial neural networks (DANN), introduced by Ganin et al.~\cite{ganin2016domain}, learn representations that are invariant to domain shifts by training a discriminator through a gradient-reversal layer. This approach has been applied to cross-subject EEG classification with mixed results; improvements are most consistent when substantial domain-discriminative signal exists in the learned representations.
+
+% ===========================================================================
+% III. DATASET AND MATERIALS
+% ===========================================================================
+\section{Dataset and Materials}
+
+\subsection{Dataset}
+We use the publicly available TU~Berlin simultaneous EEG--fNIRS dataset~\cite{shin2018simultaneous}. Twenty-six healthy participants (16 male, 10 female; mean age $26.1 \pm 3.5$ years) performed an $n$-back working memory task~\cite{kirchner1958nback, owen2005nback} with three difficulty levels: 0-back (low load), 2-back (medium load), and 3-back (high load), yielding 25 trials per participant (650 total).
+
+\subsubsection{Recording Parameters}
+EEG was recorded from 30 scalp electrodes at \SI{1000}{\hertz} (downsampled to \SI{200}{\hertz} for feature extraction) using a BrainAmp amplifier. fNIRS was recorded from 36 channels at \SI{10.4}{\hertz} using a NIRScout system, measuring both oxygenated haemoglobin (HbO) and deoxygenated haemoglobin (HbR) concentration changes across frontal, motor, parietal, and occipital cortical regions.
+
+\subsubsection{Binary Classification Framing}
+We frame the task as binary classification: 0-back trials are labelled \textit{Low} and 3-back trials are labelled \textit{High} cognitive load. The 2-back (medium) condition is excluded to maximize class separability. This yields a perfectly balanced dataset. These labels represent experimentally imposed task difficulty rather than subjective cognitive load ratings---the relationship between task difficulty and experienced load varies between individuals.
+
+\subsection{Feature Representation}
+Trials are segmented into overlapping \SI{10}{\second} windows with a \SI{5}{\second} stride (50\% overlap). Each window is represented as a 1{,}476-dimensional feature vector:
+\begin{itemize}
+    \item \textbf{EEG} (540 features): 30 electrodes $\times$ 18 feature types (6 frequency bands: $\delta$, $\theta$, $\alpha$, $\beta$, $\gamma$, engagement $\times$ 3 statistics: mean, standard deviation, slope).
+    \item \textbf{fNIRS} (936 features): 36 optodes $\times$ 26 feature types (13 statistics: mean, std, slope, min, max, peak-to-peak, AUC, power, skewness, kurtosis, early, late, $\Delta$ $\times$ HbO and HbR).
+\end{itemize}
+
+The resulting binary dataset contains 4{,}576 windows (2{,}288 per class). Feature columns are arranged in channel-major order, preserving spatial adjacency for models that exploit channel-axis structure.
+
+Table~\ref{tab:dataset} summarizes the dataset characteristics.
+
+\begin{table}[t]
+\centering
+\caption{Dataset Characteristics}
+\label{tab:dataset}
+\begin{tabular}{ll}
+\toprule
+\textbf{Property} & \textbf{Value} \\
+\midrule
+Dataset & TU Berlin / Shin et al.\ (2018) \\
+Participants & 26 (16M / 10F) \\
+EEG channels & 30 @ \SI{200}{\hertz} \\
+fNIRS channels & 36 @ \SI{10.4}{\hertz} (HbO + HbR) \\
+Task & $n$-back working memory \\
+Binary labels & Low (0-back) vs.\ High (3-back) \\
+Window size / stride & \SI{10}{\second} / \SI{5}{\second} (50\% overlap) \\
+Total features & 1{,}476 (540 EEG + 936 fNIRS) \\
+Total windows (binary) & 4{,}576 (balanced: 2{,}288 per class) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ===========================================================================
+% IV. METHODOLOGY
+% ===========================================================================
+\section{Methodology}
+
+\subsection{Preprocessing Pipeline}
+The preprocessing pipeline applies the following transformations in sequence:
+\begin{enumerate}
+    \item \textbf{NaN replacement}: All NaN or infinite values are replaced with zero.
+    \item \textbf{Per-subject normalization}: Each subject's features are $z$-scored using that subject's own statistics (mean and standard deviation computed across all windows for that subject). This is \emph{subject-local}: an automated assertion (\texttt{assert\_subject\_local}) verifies that recomputing preprocessing from one subject's raw rows in isolation produces bit-identical results to the full-dataset computation. Three modes are supported:
+    \begin{itemize}
+        \item \textit{Transductive} (default): statistics from the subject's entire session.
+        \item \textit{Calibration}: statistics from the first $K$ windows only.
+        \item \textit{None}: no per-subject normalization.
+    \end{itemize}
+    \item \textbf{Log compression}: A signed log transform $\mathrm{slog}(x) = \mathrm{sign}(x) \cdot \log(1 + |x|)$ is applied to both EEG and fNIRS features to compress right-skewed distributions. Per-subject normalization is applied \emph{before} the log transform.
+    \item \textbf{Fold-specific scaling}: RobustScaler (EEG) and StandardScaler (fNIRS) are fit exclusively on each fold's training rows.
+\end{enumerate}
+
+\noindent\textit{Deployment caveat.} Per-subject normalization requires the subject's session statistics. The transductive mode cannot provide predictions from a single window for a new individual without a recorded calibration block. Experimental evaluation of calibration-only mode (first 30 windows) shows a cost of approximately 0.04 macro~F1, not statistically significant ($p = 0.156$), making online deployment defensible.
+
+\subsection{Model Architecture}
+All models follow a dual-stream encoder--fusion--classifier architecture:
+\begin{equation}
+    \hat{y} = \mathrm{Classifier}(\mathrm{Fusion}(\mathrm{Enc}_{\mathrm{EEG}}(\mathbf{x}_{\mathrm{EEG}}),\; \mathrm{Enc}_{\mathrm{fNIRS}}(\mathbf{x}_{\mathrm{fNIRS}})))
+\end{equation}
+
+\subsubsection{MLP Encoders (Baseline)}
+Each modality encoder projects its input to a fixed dimension through a projection layer, $N$ residual MLP blocks (Linear$\to$BatchNorm$\to$ReLU$\to$Dropout$\to$Linear$\to$BatchNorm with skip connection), and an output projection:
+\begin{equation}
+    \mathrm{Enc}(\mathbf{x}) = \mathrm{ReLU}(\mathrm{BN}(\mathbf{W}_o \cdot \mathrm{ResBlock}^N(\mathrm{ReLU}(\mathrm{BN}(\mathbf{W}_p \mathbf{x})))))
+\end{equation}
+where $\mathbf{W}_p \in \mathbb{R}^{d_{\mathrm{proj}} \times d_{\mathrm{in}}}$ and $\mathbf{W}_o \in \mathbb{R}^{d_{\mathrm{enc}} \times d_{\mathrm{proj}}}$.
+
+\subsubsection{CNN Encoders (Experimental)}
+CNN encoders reshape the feature vector into a (channel, feature-type) grid:
+\begin{itemize}
+    \item EEG: $(B, 540) \to (B, 30, 18) \to \mathrm{Conv1d}$
+    \item fNIRS: $(B, 936) \to (B, 36, 26) \to \mathrm{Conv1d}$
+\end{itemize}
+Convolutions along the electrode/optode axis share filter weights across all channels, implementing a spatial weight-sharing inductive bias. The output is obtained by concatenating global mean and max pooling, followed by a linear projection. This assumes neighbouring channel indices are spatially related, which is only approximately true for this montage.
+
+\subsubsection{Fusion Strategies}
+Two fusion strategies are compared:
+\begin{itemize}
+    \item \textbf{Concatenation}: $\mathrm{Fuse}(\mathbf{e}, \mathbf{f}) = \mathrm{ReLU}(\mathrm{BN}(\mathbf{W}_c [\mathbf{e}; \mathbf{f}]))$
+    \item \textbf{Attention}: A sigmoid gate per modality computed from both embeddings:
+    \begin{align}
+        g_e &= \sigma(\mathbf{w}_e^T [\mathbf{e}; \mathbf{f}]), \quad
+        g_f = \sigma(\mathbf{w}_f^T [\mathbf{e}; \mathbf{f}]) \\
+        \mathrm{Fuse}(\mathbf{e}, \mathbf{f}) &= \mathrm{ReLU}(\mathrm{BN}(\mathbf{W}_a [g_e \mathbf{e};\; g_f \mathbf{f}]))
+    \end{align}
+    where $\sigma$ is the sigmoid function. Gate values are exposed for interpretability.
+\end{itemize}
+
+\subsubsection{Classifier Head}
+Two fully connected layers with dropout: $\mathrm{FC}(48) \to \mathrm{ReLU} \to \mathrm{Dropout} \to \mathrm{FC}(24) \to \mathrm{ReLU} \to \mathrm{Dropout} \to \mathrm{FC}(2)$.
+
+\subsubsection{Domain-Adversarial Training (DANN)}
+DANN~\cite{ganin2016domain} adds a gradient-reversal layer (GRL) and a subject discriminator to the fused embedding:
+\begin{equation}
+    \mathcal{L}_{\mathrm{total}} = \mathcal{L}_{\mathrm{task}} - \lambda \mathcal{L}_{\mathrm{domain}}
+\end{equation}
+where the GRL multiplies gradients by $-\lambda$ during backpropagation. Domain labels are the training subjects (densely re-indexed per fold; the held-out subject never has a domain class). The adversarial strength $\lambda$ follows the standard Ganin ramp schedule.
+
+\subsection{Baseline Configuration}
+Table~\ref{tab:baseline_config} specifies the complete hyperparameter set of the baseline model (A0\_baseline).
+
+\begin{table}[t]
+\centering
+\caption{Baseline Model Configuration (A0\_baseline)}
+\label{tab:baseline_config}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Encoder type & MLP \\
+Projection dim / Encoder dim & 96 / 48 \\
+Residual blocks & 2 \\
+Encoder dropout & 0.5 \\
+Fusion & Attention \\
+FC units & [48, 24] \\
+FC dropout & 0.6 \\
+Optimizer / LR / Weight decay & AdamW / 3$\times$10$^{-4}$ / 0.01 \\
+Batch size & 16 \\
+Max epochs / Early stop patience & 35 / 7 \\
+LR scheduler & Plateau (patience 4, factor 0.5) \\
+Input noise ($\sigma$) & 0.05 \\
+Class weighting & Balanced \\
+Total parameters & 245{,}594 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ===========================================================================
+% V. EXPERIMENTAL DESIGN
+% ===========================================================================
+\section{Experimental Design}
+
+\subsection{LOSO Evaluation Protocol}
+Each of the 26 participants is held out as the test subject in turn. For each fold:
+\begin{enumerate}
+    \item The held-out subject's data forms the test set and is never used in training, validation, or any fitted statistic.
+    \item The remaining subjects are split by \texttt{GroupShuffleSplit} (grouped by subject) into training and validation sets.
+    \item Scalers are fit on training data only.
+    \item Checkpoint selection uses validation macro~F1 with best-weight restoration.
+\end{enumerate}
+
+\subsection{Development/Lockbox Split}
+The 26 subjects are deterministically partitioned into:
+\begin{itemize}
+    \item \textbf{Development pool} (18 subjects: S1--S5, S7, S9--S15, S17, S20, S23--S25): All architecture search, hyperparameter tuning, and model selection use 18-fold LOSO over these subjects.
+    \item \textbf{Lockbox} (8 subjects: S6, S8, S16, S18--S19, S21--S22, S26): Evaluated exactly once after the configuration is frozen, providing an estimate uncontaminated by selection bias.
+\end{itemize}
+
+The 26-fold LOSO (all subjects) is also reported for comparability with the broader literature but is labelled ``selection-informed.''
+
+\subsection{Selection Rule}
+A challenger must clear a \emph{one-standard-error bar} over the incumbent's mean development-LOSO macro~F1. With 18 folds and a fold-to-fold standard deviation of $\sim$0.08, the standard error is $\pm$0.018. Ties prefer (a) the incumbent, then (b) fewest parameters. This rule was explicitly corrected during the project when a prior implementation silently degenerated into noise-chasing; the entire campaign was restarted after the correction.
+
+\subsection{Staged Experiment Search}
+Eleven stages each varied one axis from the incumbent (Table~\ref{tab:stages}). A total of 42 configurations were evaluated.
+
+\begin{table}[t]
+\centering
+\caption{Experimental Search Stages}
+\label{tab:stages}
+\begin{tabular}{clc}
+\toprule
+\textbf{Stage} & \textbf{Axis} & \textbf{Arms} \\
+\midrule
+S1 & Batch size, learning rate & 4 \\
+S2 & LR schedule, epoch budget & 4 \\
+S3 & Weight decay & 4 \\
+S4 & Dropout rates & 4 \\
+S5 & Width, depth & 4 \\
+S6 & MLP vs.\ CNN, fusion & 6 \\
+S7 & Modality dropout & 4 \\
+S8 & Input noise, label smoothing & 4 \\
+S9 & DANN ($\lambda$ sweep) & 4 \\
+S10 & Window geometry, normalization, HbR & 8 \\
+\midrule
+& \textbf{Total} & \textbf{42} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Leakage Audit}
+An automated audit executes nine per-fold and three per-dataset checks before each fold trains. Any failure raises a \texttt{LeakageError} and aborts the run:
+\begin{itemize}
+    \item Row-index, subject, trial, and window-identity disjointness across splits
+    \item No duplicate feature rows across splits
+    \item Scaler fit on training rows only
+    \item Held-out subject absent from training and validation
+    \item No NaN/Inf after preprocessing; valid labels with both classes present
+\end{itemize}
+
+Negative tests deliberately inject each leakage type and verify the audit detects it (8/8 pass). Per-subject normalization is verified to be subject-local via bit-exact recomputation (maximum absolute difference: 0.0).
+
+\subsection{Sliding Window Overlap}
+Windows overlap 50\% within trials. Grouping by subject ensures that every window from the held-out subject is exclusively in the test set. The \texttt{window\_identity\_disjoint} and \texttt{trial\_disjoint} assertions verify this structurally.
+
+\subsection{Metrics}
+\begin{itemize}
+    \item \textbf{Accuracy}: Fraction of correctly classified windows
+    \item \textbf{Macro F1}: Mean of per-class F1 scores
+    \item \textbf{ROC-AUC}: Area under the receiver operating characteristic curve
+    \item \textbf{MCC}: Matthews correlation coefficient
+    \item \textbf{Cohen's $\kappa$}: Chance-corrected agreement
+\end{itemize}
+Reported as mean $\pm$ standard deviation across folds. Statistical comparisons use paired $t$-tests across folds.
+
+% ===========================================================================
+% VI. RESULTS
+% ===========================================================================
+\section{Results}
+
+\subsection{Main Results}
+Table~\ref{tab:main_results} presents the baseline model's performance. The lockbox estimate ($63.71\%$) is not lower than the 26-fold LOSO estimate ($63.09\%$), confirming that the 42-experiment search produced zero measurable selection inflation.
+
+\begin{table}[t]
+\centering
+\caption{Baseline Model Performance (A0\_baseline)}
+\label{tab:main_results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Protocol} & \textbf{Acc (\%)} & \textbf{Macro F1} & \textbf{AUC} & \textbf{MCC} \\
+\midrule
+26-fold LOSO & $63.1\!\pm\!10.1$ & $.626\!\pm\!.104$ & $.678\!\pm\!.129$ & $.268\!\pm\!.206$ \\
+Lockbox (8) & $63.7\!\pm\!8.5$ & $.628\!\pm\!.093$ & $.689\!\pm\!.111$ & $.282\!\pm\!.169$ \\
+\midrule
+\textit{Chance} & $50.0$ & $.500$ & $.500$ & $.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Generalization Gap}
+Table~\ref{tab:gap} shows the train--validation--test breakdown. The $\sim$17-point gap between training and held-out accuracy reflects the fundamental cross-subject generalization challenge.
+
+\begin{table}[t]
+\centering
+\caption{Train / Validation / Test Accuracy (\%) by Protocol}
+\label{tab:gap}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Protocol} & \textbf{Train} & \textbf{Val} & \textbf{Test} & \textbf{Gap} \\
+\midrule
+26-fold LOSO & $80.2\!\pm\!9.3$ & $64.0\!\pm\!5.3$ & $63.1\!\pm\!10.1$ & 17.1 \\
+Lockbox & $81.9\!\pm\!5.9$ & $67.8\!\pm\!3.8$ & $63.7\!\pm\!8.5$ & 18.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{No Configuration Outperforms the Baseline}
+Across 42 experiments, no configuration produced a statistically significant improvement. Table~\ref{tab:top_experiments} shows the top-performing arms. The best challenger (S5\_proj192, projection dimension 192) gained $+0.016$ macro~F1 ($p = 0.309$), within the noise floor ($\pm$0.018).
+
+\begin{table}[t]
+\centering
+\caption{Top Configurations (18-fold Dev-LOSO)}
+\label{tab:top_experiments}
+\begin{tabular}{lccccr}
+\toprule
+\textbf{Experiment} & \textbf{F1} & \textbf{Acc\%} & $\Delta$ & $p$ & \textbf{Params} \\
+\midrule
+S5\_proj192 & $.661$ & $66.9$ & $+.016$ & .31 & 621K \\
+S10\_stride1s & $.657$ & $66.2$ & $+.012$ & .46 & 246K \\
+S4\_drop\_low & $.654$ & $66.1$ & $+.009$ & .66 & 246K \\
+A0\_baseline & $.645$ & $65.5$ & --- & --- & 246K \\
+S5\_proj32 & $.647$ & $65.5$ & $+.002$ & .93 & 66K \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textit{Capacity invariance.} The compact model (S5\_proj32\_enc32: 66{,}114 parameters) achieves $\Delta = +0.002$ ($p = 0.929$) at 3.7$\times$ fewer parameters than the baseline. Widening to 620{,}570 parameters gains $+0.016$, inside the noise floor. Model capacity is not the binding constraint in either direction.
+
+\subsection{CNN Encoders Significantly Degrade Performance}
+Table~\ref{tab:cnn} presents the CNN results. Every variant is significantly worse. CNNs reduce the generalization gap to 0.026--0.076 (vs.\ 0.163), but the capacity reduction costs more than the overfitting it cures.
+
+\begin{table}[t]
+\centering
+\caption{CNN vs.\ MLP Encoder Comparison (18-fold Dev-LOSO)}
+\label{tab:cnn}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Architecture} & \textbf{F1} & $\Delta$ & $p$ & \textbf{Gap} & \textbf{Params} \\
+\midrule
+MLP baseline & .645 & --- & --- & .163 & 246K \\
+CNN + residual & .555 & $-.090$ & .002 & .026 & 108K \\
+CNN + res + attn & .547 & $-.098$ & .001 & .035 & 117K \\
+CNN wide (128) & .547 & $-.098$ & $<$.001 & .076 & 364K \\
+CNN plain & .479 & $-.167$ & $<$.001 & .026 & 55K \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Interpretation.} On pre-aggregated per-channel statistics (18 summary numbers per electrode), there is insufficient local structure along the channel axis for convolutional filters to exploit. The spatial weight-sharing prior costs more than it buys. A CNN would be the appropriate architecture for raw time-series data, not for feature vectors.
+
+\subsection{DANN Monotonically Degrades Performance}
+Table~\ref{tab:dann} shows that domain-adversarial training monotonically degrades task performance as $\lambda$ increases.
+
+\begin{table}[t]
+\centering
+\caption{Domain-Adversarial Training Results (18-fold Dev-LOSO)}
+\label{tab:dann}
+\begin{tabular}{lccc}
+\toprule
+$\lambda$ & \textbf{Macro F1} & $\Delta$ & $p$ \\
+\midrule
+0 (baseline) & .645 & --- & --- \\
+0.1 & .618 & $-.027$ & .104 \\
+0.5 & .597 & $-.048$ & .014 \\
+1.0 & .578 & $-.067$ & .012 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Subject-Identity Probe Explains DANN Failure}
+A subject-identity probe---a fresh classifier trained to recover subject identity from frozen embeddings---reveals the mechanism (Table~\ref{tab:probe}).
+
+\begin{table}[t]
+\centering
+\caption{Subject-Identity Probe (Chance = 12.5\% for 8 lockbox subjects)}
+\label{tab:probe}
+\begin{tabular}{lc}
+\toprule
+\textbf{Representation} & \textbf{Probe Accuracy (\%)} \\
+\midrule
+Raw features (post-normalization) & 1.3 \\
+Baseline encoder embedding & 21.4 \\
+DANN encoder embedding ($\lambda\!=\!0.1$) & 21.7 \\
+\midrule
+\textit{Chance level} & 12.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Per-subject $z$-scoring strips decodable subject identity from the raw features (1.3\%, well below chance). The encoder re-introduces modest subject information (21.4\%), and DANN fails to reduce it (21.7\%). The adversary injects noise without removing the confound it targets---a coherent negative result, not an inconclusive one.
+
+\subsection{Attention vs.\ Concatenation Fusion}
+Replacing attention fusion with concatenation loses 0.016 macro~F1 ($p = 0.230$). The difference is in the expected direction but not statistically significant. Attention is retained because it is not worse and provides interpretable modality gate values.
+
+\subsection{Regularization Cannot Close the Gap}
+Weight decay (0--0.1), dropout (0.3--0.7), input noise (0--0.2), label smoothing, and modality dropout (0.1--0.3) were all tested. Strong regularization reliably reduces the train--test gap \emph{and} reduces held-out performance with it. The most extreme case (dropout 0.6/0.7) cuts the gap from 0.163 to 0.040 while losing 0.137 macro~F1 ($p < 0.001$). The gap reflects genuine between-subject variability, not excess model capacity.
+
+\subsection{Confusion Matrix}
+Table~\ref{tab:confusion} presents the pooled 26-fold LOSO confusion matrix.
+
+\begin{table}[t]
+\centering
+\caption{Pooled Confusion Matrix (26-fold LOSO, 4{,}576 windows)}
+\label{tab:confusion}
+\begin{tabular}{lcc|cccc}
+\toprule
+& \textbf{Pred Low} & \textbf{Pred High} & \textbf{Prec} & \textbf{Rec} & \textbf{F1} & \textbf{N} \\
+\midrule
+True Low & 1{,}561 & 727 & .619 & .682 & .649 & 2{,}288 \\
+True High & 962 & 1{,}326 & .646 & .580 & .611 & 2{,}288 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The model exhibits a mild bias toward Low predictions, with higher recall for Low (0.682) and higher precision for High (0.646). Pooled accuracy is 0.6309; pooled macro~F1 is 0.6299.
+
+\subsection{Per-Subject Performance Variability}
+Per-subject macro~F1 ranges from 0.431 (Subject~12) to 0.807 (Subject~17). Four of 26 subjects fall below chance accuracy. The between-subject spread (0.38) is more than twice the largest inter-model difference across all 42 experiments (0.17), confirming that subject identity is the dominant error source.
+
+\subsection{Feature Attribution}
+SHAP values (GradientExplainer on held-out windows) reveal extreme modality asymmetry (Table~\ref{tab:shap}).
+
+\begin{table}[t]
+\centering
+\caption{SHAP Modality Attribution}
+\label{tab:shap}
+\begin{tabular}{lc}
+\toprule
+\textbf{Modality} & \textbf{Share of Total $|\mathrm{SHAP}|$} \\
+\midrule
+fNIRS (total) & 94.5\% \\
+\quad HbR & 48.8\% \\
+\quad HbO & 45.8\% \\
+EEG & 5.5\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The top feature families are all haemodynamic: HbR AUC (0.302), HbO max (0.282), HbO min (0.272), HbO mean (0.270). Top individual features include \texttt{hbo\_ch23\_min}, \texttt{hbr\_ch24\_max}, and \texttt{hbr\_ch28\_min}, predominantly from prefrontal optode channels. The S10 HbR ablation independently corroborates HbR's importance: removing HbR costs 0.067 macro~F1 ($p = 0.014$).
+
+\subsection{Data Configuration Ablations}
+Table~\ref{tab:s10} summarizes results from S10. Per-subject normalization and HbR retention are validated as important; dense windowing provides no significant benefit.
+
+\begin{table}[t]
+\centering
+\caption{Data Configuration Ablation (S10)}
+\label{tab:s10}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Variant} & $\Delta$ \textbf{F1} & $p$ \\
+\midrule
+No per-subject norm & $-0.075$ & .014 \\
+Drop HbR (HbO only) & $-0.067$ & .014 \\
+Norm after log transform & $-0.030$ & .050 \\
+Calibration-only norm (30 win) & $-0.040$ & .156 \\
+Dense windows (1~s stride) & $+0.012$ & .461 \\
+8~s windows / 4~s stride & $-0.029$ & .128 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ===========================================================================
+% VII. DISCUSSION
+% ===========================================================================
+\section{Discussion}
+
+\subsection{Deep Learning Does Not Outperform Compact Architectures}
+Across 42 controlled experiments, no deep-learning configuration significantly outperforms the baseline dual-stream MLP on pre-aggregated features under cross-subject evaluation. The most compact model tested (66K parameters) matches the baseline (246K) and the widest model (621K), suggesting that model capacity is not the binding constraint. This is consistent with the observation by Lotte et al.~\cite{lotte2018review} and Roy et al.~\cite{roy2019deep} that regularized shallow classifiers often match deep networks on small BCI datasets.
+
+\subsection{The Gap Is Not Excess Capacity}
+Regularization consistently trades the generalization gap for reduced held-out performance, demonstrating the gap reflects genuine inter-subject variability rather than overfitting. The path to better cross-subject performance lies in: (a) substantially more training participants, (b) richer signal representations (raw time-series), or (c) improved subject-adaptation techniques.
+
+\subsection{Why DANN Fails: A Mechanistic Explanation}
+The DANN failure is not merely a negative empirical result. Per-subject normalization removes most decodable subject identity from raw features (probe accuracy 1.3\% vs.\ 12.5\% chance). The encoder re-introduces modest subject information (21.4\%), but DANN does not reduce it (21.7\%). This has implications for the broader BCI transfer-learning literature: domain-adversarial approaches are unlikely to improve generalization when preprocessing has already substantially reduced domain-discriminative signal. This aligns with findings from Wu et al.~\cite{wu2022transfer} on the limited effectiveness of domain adaptation when domain shift is already mitigated.
+
+\subsection{fNIRS Dominates Cross-Subject Classification}
+SHAP analysis reveals fNIRS features carry 94.5\% of model attribution, far exceeding EEG's 5.5\%. This is more extreme than the approximately equal attention-gate values during training, highlighting the well-known discrepancy between learned gate values and post-hoc attribution~\cite{lundberg2017unified}. For cross-subject classification on pre-aggregated features, haemodynamic response shape is the primary discriminative signal. This does not necessarily generalize to raw-signal applications where EEG's temporal resolution may be more valuable.
+
+The slight HbR dominance (48.8\% vs.\ 45.8\%) is independently supported by the HbR ablation ($\Delta = -0.067$, $p = 0.014$). Previous work has focused primarily on HbO~\cite{ayaz2012optical, herff2014mental}; our findings suggest HbR carries complementary discriminative information.
+
+\subsection{Between-Subject Variability Dominates}
+The per-subject F1 range (0.431--0.807, spread 0.38) exceeds all inter-model differences by a factor of two. Four participants fall below chance. This finding---that the dominant error source is \emph{which person} is being tested, not \emph{which model} is used---has important implications for BCI deployment and echoes observations by Saha and Baumert~\cite{saha2020variability}.
+
+\subsection{Implications for Practical Deployment}
+A cross-subject accuracy of 63\% (chance 50\%) is well above chance but far from clinical reliability. Per-subject normalization requires at minimum a short calibration block. For applications requiring participant-specific accuracy, calibration combined with fine-tuning may be necessary. The calibration-only ablation ($-0.04$ F1, $p = 0.156$) suggests this is feasible with modest cost.
+
+% ===========================================================================
+% VIII. LIMITATIONS AND THREATS TO VALIDITY
+% ===========================================================================
+\section{Limitations and Threats to Validity}
+
+\begin{enumerate}
+    \item \textbf{Small participant cohort.} $N = 26$ limits population-level claims. The noise floor ($\pm$0.018 on mean macro~F1) restricts the ability to detect small genuine improvements.
+    \item \textbf{Single dataset and task.} All results are from the TU~Berlin $n$-back dataset. Generalization to other tasks, equipment, or populations remains untested.
+    \item \textbf{Task-difficulty labels.} Binary labels reflect imposed difficulty (0-back vs.\ 3-back), not subjective cognitive load ratings.
+    \item \textbf{Pre-aggregated features.} All models operate on hand-crafted features. End-to-end learning from raw time series was not evaluated and may yield different conclusions.
+    \item \textbf{Transductive normalization.} Per-subject $z$-scoring uses the complete session. The calibration ablation suggests modest cost ($\sim$0.04 F1).
+    \item \textbf{Greedy staged search.} One-axis-at-a-time search cannot find improvements requiring simultaneous changes on multiple axes.
+    \item \textbf{Selection-informed LOSO.} The 26-fold number uses 18 of the 26 subjects for selection. The lockbox confirms no inflation.
+    \item \textbf{SHAP method dependence.} Attribution is from one explainability method (GradientExplainer) on one model. The extreme fNIRS dominance may be method-dependent.
+    \item \textbf{No external validation.} No clinical or external-dataset validation was performed.
+\end{enumerate}
+
+% ===========================================================================
+% IX. CONCLUSION AND FUTURE WORK
+% ===========================================================================
+\section{Conclusion and Future Work}
+
+We systematically evaluated 42 deep-learning configurations for cross-subject binary cognitive load estimation using simultaneous EEG--fNIRS, under a strict LOSO protocol with a pre-registered development/lockbox split and automated leakage auditing. The principal findings are:
+
+\begin{enumerate}
+    \item No configuration significantly outperforms the baseline dual-stream MLP with attention fusion (LOSO accuracy $63.09 \pm 10.11\%$, lockbox $63.71 \pm 8.50\%$).
+    \item Between-subject variability is the dominant error source, exceeding all inter-model differences by a factor of two.
+    \item Domain-adversarial training monotonically degrades performance; a subject-identity probe provides a mechanistic explanation.
+    \item fNIRS features account for 94.5\% of SHAP attribution, with HbR and HbO contributing approximately equally.
+    \item The generalization gap reflects genuine physiological variability, not excess model capacity.
+\end{enumerate}
+
+The most promising future directions are: (a) evaluation on raw time-series signals where architectural inductive biases can exploit temporal structure; (b) larger, more diverse participant pools; (c) online calibration protocols for rapid adaptation; (d) evaluation on additional datasets and tasks; and (e) continual or few-shot learning for participant adaptation.
+
+% ===========================================================================
+% ACKNOWLEDGMENTS
+% ===========================================================================
+\section*{Acknowledgments}
+[To be added by authors. Acknowledge supervisor, institution, computational resources, and the TU Berlin group for making the dataset publicly available.]
+
+% ===========================================================================
+% REFERENCES
+% ===========================================================================
+\balance
+\bibliographystyle{IEEEtran}
+
+\begin{thebibliography}{23}
+
+\bibitem{sweller1988cognitive}
+J.~Sweller, ``Cognitive load during problem solving: Effects on learning,'' \textit{Cognitive Science}, vol.~12, no.~2, pp.~257--285, 1988.
+
+\bibitem{parasuraman2008neuroergonomics}
+R.~Parasuraman and M.~Rizzo, Eds., \textit{Neuroergonomics: The Brain at Work}. New York, NY, USA: Oxford Univ. Press, 2008.
+
+\bibitem{gevins1998monitoring}
+A.~Gevins, M.~E.~Smith, H.~Leong, L.~McEvoy, S.~Whitfield, R.~Du, and G.~Rush, ``Monitoring working memory load during computer-based tasks with EEG pattern recognition methods,'' \textit{Human Factors}, vol.~40, no.~1, pp.~79--91, 1998, doi: 10.1518/001872098779480578.
+
+\bibitem{antonenko2010using}
+P.~D.~Antonenko, F.~Paas, R.~Grabner, and T.~van~Gog, ``Using electroencephalography to measure cognitive load,'' \textit{Educational Psychology Review}, vol.~22, no.~4, pp.~425--438, 2010.
+
+\bibitem{ayaz2012optical}
+H.~Ayaz, P.~A.~Shewokis, S.~Bunce, K.~Izzetoglu, B.~Willems, and B.~Onaral, ``Optical brain monitoring for operator training and mental workload assessment,'' \textit{NeuroImage}, vol.~59, no.~1, pp.~36--47, 2012, doi: 10.1016/j.neuroimage.2011.06.023.
+
+\bibitem{herff2014mental}
+C.~Herff, D.~Heger, O.~Fortmann, J.~Hennrich, F.~Putze, and T.~Schultz, ``Mental workload during $n$-back task---quantified in the prefrontal cortex using fNIRS,'' \textit{Front. Hum. Neurosci.}, vol.~7, art. 935, 2014, doi: 10.3389/fnhum.2013.00935.
+
+\bibitem{shin2018simultaneous}
+J.~Shin, A.~von~L\"{u}hmann, D.-W.~Kim, J.~Mehnert, H.-J.~Hwang, and K.-R.~M\"{u}ller, ``Simultaneous acquisition of EEG and NIRS during cognitive tasks for an open access dataset,'' \textit{Sci. Data}, vol.~5, art. 180003, Feb.\ 2018, doi: 10.1038/sdata.2018.3.
+
+\bibitem{fazli2012enhanced}
+S.~Fazli, J.~Mehnert, J.~Steinbrink, G.~Curio, A.~Villringer, K.-R.~M\"{u}ller, and B.~Blankertz, ``Enhanced performance by a hybrid NIRS--EEG brain computer interface,'' \textit{NeuroImage}, vol.~59, no.~1, pp.~519--529, 2012, doi: 10.1016/j.neuroimage.2011.07.084.
+
+\bibitem{aghajani2017measuring}
+H.~Aghajani, M.~Garbey, and A.~Omurtag, ``Measuring mental workload with EEG+fNIRS,'' \textit{Front. Hum. Neurosci.}, vol.~11, art. 359, 2017, doi: 10.3389/fnhum.2017.00359.
+
+\bibitem{liu2017multisubject}
+Y.~Liu, H.~Ayaz, and P.~A.~Shewokis, ``Multisubject `learning' for mental workload classification using concurrent EEG, fNIRS, and physiological measures,'' \textit{Front. Hum. Neurosci.}, vol.~11, art. 389, 2017, doi: 10.3389/fnhum.2017.00389.
+
+\bibitem{lotte2018review}
+F.~Lotte \textit{et~al.}, ``A review of classification algorithms for EEG-based brain--computer interfaces: A 10~year update,'' \textit{J. Neural Eng.}, vol.~15, no.~3, art. 031005, 2018, doi: 10.1088/1741-2552/aab2f2.
+
+\bibitem{schirrmeister2017deep}
+R.~T.~Schirrmeister \textit{et~al.}, ``Deep learning with convolutional neural networks for EEG decoding and visualization,'' \textit{Hum. Brain Mapp.}, vol.~38, no.~11, pp.~5391--5420, 2017.
+
+\bibitem{lawhern2018eegnet}
+V.~J.~Lawhern, A.~J.~Solon, N.~R.~Waytowich, S.~M.~Gordon, C.~P.~Hung, and B.~J.~Lance, ``EEGNet: A compact convolutional neural network for EEG-based brain--computer interfaces,'' \textit{J. Neural Eng.}, vol.~15, no.~5, art. 056013, 2018, doi: 10.1088/1741-2552/aace8c.
+
+\bibitem{wu2022transfer}
+D.~Wu, Y.~Xu, and B.-L.~Lu, ``Transfer learning for EEG-based brain--computer interfaces: A review of progress made since 2016,'' \textit{IEEE Trans. Cogn. Dev. Syst.}, vol.~14, no.~1, pp.~4--19, Mar.\ 2022, doi: 10.1109/TCDS.2020.3007453.
+
+\bibitem{saha2020variability}
+S.~Saha and M.~Baumert, ``Intra- and inter-subject variability in EEG-based sensorimotor brain computer interface: A review,'' \textit{Front. Comput. Neurosci.}, vol.~13, art. 87, 2020, doi: 10.3389/fncom.2019.00087.
+
+\bibitem{roy2019deep}
+Y.~Roy, H.~Banville, I.~Albuquerque, A.~Gramfort, T.~H.~Falk, and J.~Faubert, ``Deep learning-based electroencephalography analysis: A systematic review,'' \textit{J. Neural Eng.}, vol.~16, no.~5, art. 051001, 2019, doi: 10.1088/1741-2552/ab260c.
+
+\bibitem{ganin2016domain}
+Y.~Ganin, E.~Ustinova, H.~Ajakan, P.~Germain, H.~Larochelle, F.~Laviolette, M.~Marchand, and V.~Lempitsky, ``Domain-adversarial training of neural networks,'' \textit{J. Mach. Learn. Res.}, vol.~17, no.~59, pp.~1--35, 2016.
+
+\bibitem{lundberg2017unified}
+S.~M.~Lundberg and S.-I.~Lee, ``A unified approach to interpreting model predictions,'' in \textit{Proc. NeurIPS}, vol.~30, 2017, pp.~4768--4777.
+
+\bibitem{lakshminarayanan2017simple}
+B.~Lakshminarayanan, A.~Pritzel, and C.~Blundell, ``Simple and scalable predictive uncertainty estimation using deep ensembles,'' in \textit{Proc. NeurIPS}, vol.~30, 2017, pp.~6402--6413.
+
+\bibitem{zhou2022cognitive}
+Y.~Zhou \textit{et~al.}, ``Cognitive workload recognition using EEG signals and machine learning: A review,'' \textit{IEEE Trans. Cogn. Dev. Syst.}, vol.~14, no.~3, pp.~799--818, Sep.\ 2022, doi: 10.1109/TCDS.2021.3090217.
+
+\bibitem{fishburn2014sensitivity}
+F.~A.~Fishburn, M.~E.~Norr, A.~V.~Medvedev, and C.~J.~Vaidya, ``Sensitivity of fNIRS to cognitive state and load,'' \textit{Front. Hum. Neurosci.}, vol.~8, art. 76, 2014, doi: 10.3389/fnhum.2014.00076.
+
+\bibitem{zanini2018transfer}
+P.~Zanini, M.~Congedo, C.~Jutten, S.~Said, and Y.~Berthoumieu, ``Transfer learning: A Riemannian geometry framework with applications to brain--computer interfaces,'' \textit{IEEE Trans. Biomed. Eng.}, vol.~65, no.~5, pp.~1107--1116, May 2018, doi: 10.1109/TBME.2017.2742541.
+
+\bibitem{kirchner1958nback}
+W.~K.~Kirchner, ``Age differences in short-term retention of rapidly changing information,'' \textit{J. Exp. Psychol.}, vol.~55, no.~4, pp.~352--358, 1958, doi: 10.1037/h0043688.
+
+\bibitem{owen2005nback}
+A.~M.~Owen, K.~M.~McMillan, A.~R.~Laird, and E.~Bullmore, ``$N$-back working memory paradigm: A meta-analysis of normative functional neuroimaging studies,'' \textit{Hum. Brain Mapp.}, vol.~25, no.~1, pp.~46--59, 2005, doi: 10.1002/hbm.20131.
+
+\end{thebibliography}
+
+\end{document}

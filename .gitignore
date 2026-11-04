@@ -41,6 +41,8 @@ test_data/synthetic/*.csv
 
 # macOS junk
 .DS_Store
+__MACOSX/
+._*
 
 # The raw + extracted TU Berlin data (9.3 GB). Referenced from data/ by symlink;
 # never committed. See explanation/PROJECT_RECORD.md for how to point data/ at it.

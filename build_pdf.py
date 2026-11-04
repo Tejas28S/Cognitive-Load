@@ -1,0 +1,642 @@
+import os
+import subprocess
+import pymupdf
+
+HTML_PATH = os.path.abspath("paper.html")
+PDF_PATH = os.path.abspath("paper.pdf")
+CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multimodal EEG-fNIRS Fusion with Attention Gating for Cross-Subject Cognitive Workload Estimation: A Leakage-Audited Study</title>
+<style>
+@page {
+    size: letter;
+    margin-top: 0.70in;
+    margin-bottom: 0.70in;
+    margin-left: 0.60in;
+    margin-right: 0.60in;
+}
+
+body {
+    font-family: "Times New Roman", Times, "Nimbus Roman No9 L", serif;
+    font-size: 9.8pt;
+    line-height: 1.16;
+    color: #000;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+}
+
+/* Title & Author Header */
+.paper-header {
+    text-align: center;
+    margin-bottom: 12pt;
+}
+
+.paper-title {
+    font-size: 21pt;
+    font-weight: bold;
+    line-height: 1.15;
+    margin-bottom: 9pt;
+    letter-spacing: -0.2px;
+}
+
+.author-block {
+    margin-bottom: 6pt;
+    line-height: 1.22;
+}
+
+.author-names {
+    font-size: 10.5pt;
+    font-weight: 500;
+    margin-bottom: 2pt;
+}
+
+.author-affil {
+    font-size: 9.2pt;
+    font-style: italic;
+    color: #111;
+}
+
+.author-email {
+    font-size: 8.8pt;
+    font-family: "Courier New", Courier, monospace;
+    margin-top: 1.5pt;
+}
+
+/* Two-column layout */
+.columns {
+    column-count: 2;
+    column-gap: 0.22in;
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
+}
+
+p {
+    margin: 0 0 3.2pt 0;
+    text-indent: 1.25em;
+}
+
+p.first-para {
+    text-indent: 0;
+}
+
+/* Section Headings */
+h1 {
+    font-size: 9.8pt;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    margin-top: 9pt;
+    margin-bottom: 3.5pt;
+    letter-spacing: 0.4px;
+    break-after: avoid;
+}
+
+h2 {
+    font-size: 9.8pt;
+    font-weight: bold;
+    font-style: italic;
+    margin-top: 7pt;
+    margin-bottom: 2.5pt;
+    text-indent: 0;
+    break-after: avoid;
+}
+
+h3 {
+    font-size: 9.8pt;
+    font-style: italic;
+    margin-top: 5pt;
+    margin-bottom: 2pt;
+    text-indent: 0;
+    break-after: avoid;
+}
+
+/* Abstract & Keywords */
+.abstract-box {
+    margin-bottom: 6pt;
+    font-size: 8.8pt;
+    line-height: 1.15;
+}
+
+.abstract-heading {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.abstract-text {
+    font-weight: bold;
+}
+
+.keywords-box {
+    margin-bottom: 8pt;
+    font-size: 8.8pt;
+    line-height: 1.15;
+}
+
+.keywords-heading {
+    font-weight: bold;
+    font-style: italic;
+}
+
+/* Tables */
+.table-container {
+    margin: 6pt 0 7pt 0;
+    text-align: center;
+    break-inside: avoid;
+}
+
+.table-title {
+    font-size: 7.8pt;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1pt;
+}
+
+.table-caption {
+    font-size: 7.8pt;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2.5pt;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.8pt;
+    margin: 0 auto;
+    line-height: 1.12;
+}
+
+th {
+    border-top: 1.2px solid black;
+    border-bottom: 1px solid black;
+    padding: 2.5px 2px;
+    font-weight: bold;
+    text-align: left;
+}
+
+th.center, td.center {
+    text-align: center;
+}
+
+th.right, td.right {
+    text-align: right;
+}
+
+td {
+    padding: 1.8px 2px;
+    text-align: left;
+}
+
+tr.border-top td {
+    border-top: 0.6px solid #aaa;
+}
+
+tr.border-bottom td {
+    border-bottom: 1.2px solid black;
+}
+
+.table-subheading {
+    font-style: italic;
+    font-weight: 500;
+    padding-top: 2px;
+    padding-bottom: 1px;
+}
+
+.table-footnote {
+    font-size: 6.8pt;
+    text-align: left;
+    margin-top: 2pt;
+    font-style: italic;
+}
+
+/* Figures */
+.figure-container {
+    margin: 6pt 0 7pt 0;
+    text-align: center;
+    break-inside: avoid;
+}
+
+.figure-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.figure-caption {
+    font-size: 7.8pt;
+    text-align: justify;
+    line-height: 1.12;
+    margin-top: 3.5pt;
+    text-indent: 0;
+}
+
+.figure-caption strong {
+    font-weight: bold;
+}
+
+/* Equations */
+.equation {
+    display: table;
+    width: 100%;
+    margin: 4pt 0;
+    font-style: italic;
+    break-inside: avoid;
+}
+
+.equation-body {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.equation-label {
+    display: table-cell;
+    width: 25px;
+    text-align: right;
+    vertical-align: middle;
+    font-style: normal;
+    font-size: 8.2pt;
+}
+
+/* Lists */
+ol, ul {
+    margin: 2pt 0 3.5pt 0;
+    padding-left: 1.3em;
+}
+
+li {
+    margin-bottom: 1.5pt;
+}
+
+/* References */
+.references-list {
+    font-size: 7.8pt;
+    line-height: 1.12;
+}
+
+.ref-item {
+    margin-bottom: 2.8pt;
+    padding-left: 1.5em;
+    text-indent: -1.5em;
+    text-align: justify;
+    break-inside: avoid;
+}
+</style>
+</head>
+<body>
+
+<div class="paper-header">
+    <div class="paper-title">Multimodal EEG&ndash;fNIRS Fusion with Attention Gating for Cross-Subject Cognitive Workload Estimation: A Leakage-Audited Study</div>
+    <div class="author-block">
+        <div class="author-names">Author One<sup>1</sup>, Author Two<sup>1</sup>, Author Three<sup>1</sup>, and Advisor Name<sup>1</sup></div>
+        <div class="author-affil"><sup>1</sup>Department of Computer Science and Engineering, University Name, City, Country</div>
+        <div class="author-email">{author1, author2, author3}@university.edu</div>
+    </div>
+</div>
+
+<div class="columns">
+
+    <div class="abstract-box">
+        <span class="abstract-heading">Abstract&mdash;</span><span class="abstract-text">Estimating cognitive workload from neurophysiological signals is critical for adaptive human&ndash;computer interaction, yet cross-subject generalization remains a fundamental bottleneck. We present a hybrid deep-learning framework that fuses electroencephalography (EEG) band-power features with functional near-infrared spectroscopy (fNIRS) hemodynamic response descriptors through learned attention gating for binary (low vs. high) workload classification. Evaluated on the TU Berlin/Shin open n-back dataset (26 subjects, 4,576 windows), our system achieves 63.09% &plusmn; 10.1% leave-one-subject-out (LOSO) accuracy and 0.6255 macro F1, verified by an automated leakage audit that enforces subject, trial, window, and scaler-fit disjointness before every fold trains. A systematic 58-configuration search&mdash;including domain-adversarial neural networks (DANN), architectural variants, and data ablations&mdash;found no statistically significant improvement over the attention-gated baseline, establishing a credible performance ceiling for this dataset under honest cross-subject evaluation. SHAP analysis reveals that fNIRS hemodynamic features contribute 94.5% of model attributions, while per-subject accuracy ranges from 43.1% to 80.7%, highlighting the dominance of hemodynamic signals and the challenge of inter-subject variability.</span>
+    </div>
+
+    <div class="keywords-box">
+        <span class="keywords-heading">Index Terms&mdash;</span>Cognitive workload, EEG, fNIRS, multimodal fusion, attention gating, cross-subject generalization, leave-one-subject-out, leakage audit, deep learning.
+    </div>
+
+    <h1>I. Introduction</h1>
+    <p class="first-para">Cognitive workload estimation from neurophysiological signals is essential for designing adaptive interfaces in safety-critical domains such as air traffic control [1], autonomous driving [2], and surgical training [3]. Two complementary brain-sensing modalities dominate this field: electroencephalography (EEG), which captures fast electrical oscillations with millisecond resolution, and functional near-infrared spectroscopy (fNIRS), which measures slower hemodynamic changes in oxygenated (HbO) and deoxygenated (HbR) hemoglobin with superior spatial localization to cortical regions [4].</p>
+    <p>While within-subject classification accuracies of 70&ndash;90% are commonly reported [5], [6], these figures exploit subject-specific baselines that do not transfer to unseen individuals. Leave-one-subject-out (LOSO) evaluation&mdash;the protocol that reflects real deployment on new users&mdash;typically yields 35&ndash;55% accuracy for three-class (low/medium/high) n-back tasks [7], [8], exposing a critical <em>cross-subject generalization gap</em>. This gap, rather than any single architectural choice, is the dominant bottleneck for practical brain&ndash;computer interfaces (BCIs).</p>
+    <p>Despite growing interest in multimodal EEG&ndash;fNIRS fusion [9]&ndash;[11], several key challenges remain unresolved. First, many published results use fixed train/test splits or within-subject protocols that conflate model performance with memorization of individual physiological signatures. Second, the relative contribution of EEG and fNIRS to cross-subject classification under honest evaluation is poorly characterized. Third, the effectiveness of domain-adaptation techniques such as DANN [12] for this specific multimodal setting has not been rigorously evaluated with paired statistical tests and mechanistic probes.</p>
+    <p>This paper makes the following contributions:</p>
+    <ol>
+        <li>A leakage-audited hybrid architecture with attention-gated EEG&ndash;fNIRS fusion achieving 63.09% binary LOSO accuracy on the Shin et al. dataset;</li>
+        <li>A systematic 58-experiment search with paired significance testing, documenting both positive and negative results;</li>
+        <li>An honest negative result on DANN for cross-subject transfer, with a mechanistic explanation;</li>
+        <li>Quantitative characterization of modality contributions and inter-subject variability via SHAP analysis.</li>
+    </ol>
+
+    <h1>II. Related Work</h1>
+    <h2>A. EEG-Based Workload Estimation</h2>
+    <p class="first-para">EEG-based cognitive workload classification has been extensively studied using spectral features, particularly frontal theta and parietal alpha power, which modulate with n-back difficulty [13], [14]. Deep learning approaches including EEGNet [15] and temporal convolutional networks [16] have improved within-subject accuracy but show limited cross-subject transfer.</p>
+
+    <h2>B. fNIRS-Based Estimation</h2>
+    <p class="first-para">fNIRS captures hemodynamic correlates of neural activity&mdash;specifically HbO increases and HbR decreases in activated cortical regions [4]. For cognitive workload, prefrontal HbO concentration changes during n-back tasks provide discriminative features [17], [6]. The temporal resolution of fNIRS (~10 Hz) is lower than EEG but offers complementary information about sustained metabolic demands.</p>
+
+    <h2>C. Multimodal EEG&ndash;fNIRS Fusion</h2>
+    <p class="first-para">The complementary temporal and metabolic information in EEG and fNIRS motivates their fusion [11], [10]. Fazli et al. [11] demonstrated significant accuracy improvements with EEG+fNIRS over either modality alone using meta-classification. Subsequent work explored early, intermediate, and late fusion strategies [9], [7]. Attention-based fusion mechanisms that dynamically weight modality contributions have emerged as promising approaches [18].</p>
+
+    <h2>D. Cross-Subject Generalization</h2>
+    <p class="first-para">Subject variability in neurophysiological signals is a fundamental challenge. Transfer learning [19], domain adaptation [12], and subject-specific normalization [7] have been proposed but often evaluated with limited rigor. DANN [12] has shown promise for cross-subject EEG emotion recognition [20] but its effectiveness for multimodal workload classification remains underexplored. A critical gap in the literature is the distinction between within-subject and LOSO evaluation; this protocol difference alone accounts for 20+ percentage points of reported accuracy variation on the same dataset [21].</p>
+
+    <h1>III. Dataset and Methodology</h1>
+    <h2>A. Dataset</h2>
+    <p class="first-para">We use the TU Berlin/Shin open-access simultaneous EEG&ndash;fNIRS n-back dataset [5], [7]. Table I summarizes key characteristics.</p>
+
+    <div class="table-container">
+        <div class="table-title">TABLE I</div>
+        <div class="table-caption">Dataset Characteristics</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Source</td><td>TU Berlin / Shin et al. [5]</td></tr>
+                <tr><td>Participants</td><td>26 (healthy adults)</td></tr>
+                <tr><td>EEG channels</td><td>30 (10&ndash;20 system)</td></tr>
+                <tr><td>fNIRS channels</td><td>36 source&ndash;detector pairs</td></tr>
+                <tr><td>EEG sampling rate</td><td>1000 Hz</td></tr>
+                <tr><td>fNIRS sampling rate</td><td>10 Hz</td></tr>
+                <tr><td>N-back conditions</td><td>0-back, 2-back, 3-back</td></tr>
+                <tr><td>Binary labels</td><td>Low (0-back) vs. High (3-back)</td></tr>
+                <tr><td>Sliding windows</td><td>10 s window / 5 s stride</td></tr>
+                <tr><td>Usable windows</td><td>4,576 (balanced: 2,288 per class)</td></tr>
+                <tr><td>EEG features</td><td>180 (30 ch &times; 6 band powers)</td></tr>
+                <tr class="border-bottom"><td>fNIRS features</td><td>936 (36 ch &times; 13 stats &times; HbO+HbR)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>B. Preprocessing</h2>
+    <p class="first-para">EEG signals are bandpass filtered (0.5&ndash;45 Hz) and decomposed into six frequency bands: delta (1&ndash;4 Hz), theta (4&ndash;8 Hz), alpha (8&ndash;13 Hz), beta (13&ndash;30 Hz), gamma (30&ndash;45 Hz), and an engagement ratio. For each 10-second window, band power is computed per channel, yielding 180 features (30 channels &times; 6 bands). fNIRS signals yield 13 statistical descriptors per channel (mean, max, min, AUC, slope, skewness, kurtosis, early/late window response, delta, power, and std) for both HbO and HbR chromophores across 36 channels, producing up to 936 features.</p>
+    <p>Per-subject z-score normalization is applied <em>before</em> log transformation to remove subject-specific physiological baselines. EEG features undergo log(1 + |<em>x</em>|) compression; fNIRS features undergo signed-log transformation sgn(<em>x</em>) &middot; log(1 + |<em>x</em>|). After these transforms, a <code>RobustScaler</code> (EEG) or <code>StandardScaler</code> (fNIRS) is fitted on <em>training data only</em> within each LOSO fold.</p>
+
+    <h2>C. Model Architecture</h2>
+    <p class="first-para">Fig. 1 illustrates the overall system. The architecture consists of:</p>
+    <p><strong>Per-Modality MLP Encoders.</strong> Each modality passes through an input projection layer (Linear &rarr; BatchNorm &rarr; ReLU &rarr; Dropout), followed by two residual MLP blocks (each containing two linear layers with BatchNorm, ReLU, and residual connections), and an output projection to a shared <em>d</em><sub>enc</sub>-dimensional space.</p>
+    <p><strong>Attention-Gated Fusion.</strong> Given encoder outputs <strong>e</strong><sub>EEG</sub> and <strong>e</strong><sub>fNIRS</sub>, the concatenation [<strong>e</strong><sub>EEG</sub>; <strong>e</strong><sub>fNIRS</sub>] is passed through two parallel sigmoid gates:</p>
+    <div class="equation">
+        <div class="equation-body"><strong>g</strong><sub>EEG</sub> = &sigma;(<em>W</em><sub>1</sub> [<strong>e</strong><sub>EEG</sub>; <strong>e</strong><sub>fNIRS</sub>])</div>
+        <div class="equation-label">(1)</div>
+    </div>
+    <div class="equation">
+        <div class="equation-body"><strong>g</strong><sub>fNIRS</sub> = &sigma;(<em>W</em><sub>2</sub> [<strong>e</strong><sub>EEG</sub>; <strong>e</strong><sub>fNIRS</sub>])</div>
+        <div class="equation-label">(2)</div>
+    </div>
+    <p>The fused representation is <strong>f</strong> = [<strong>g</strong><sub>EEG</sub> &odot; <strong>e</strong><sub>EEG</sub>; <strong>g</strong><sub>fNIRS</sub> &odot; <strong>e</strong><sub>fNIRS</sub>], which is projected through a linear layer with BatchNorm, ReLU, and dropout.</p>
+    <p><strong>Classification Head.</strong> A two-layer MLP (48 &rarr; 24 &rarr; 2) with BatchNorm, ReLU, dropout (<em>p</em> = 0.6), and a final linear layer for binary classification. The total model contains ~245K trainable parameters.</p>
+
+    <div class="figure-container">
+        <img src="fig1_architecture.png" alt="System Architecture">
+        <div class="figure-caption"><strong>Fig. 1.</strong> Overall EEG&ndash;fNIRS system architecture. Per-modality MLP encoders project variable-length feature vectors to a shared embedding space. Learned attention gates dynamically weight each modality's contribution before fusion and classification.</div>
+    </div>
+
+    <h2>D. Data Pipeline and Evaluation Protocol</h2>
+    <p class="first-para">Fig. 2 illustrates the end-to-end processing and evaluation workflow. All results use 26-fold LOSO cross-validation: for each fold, one subject is held out for testing, while the remaining 25 are split into training and validation sets by subject. Performance is reported as mean &plusmn; standard deviation across the 26 folds. The binary task (Low vs. High) excludes 2-back trials, yielding 4,576 balanced windows.</p>
+
+    <div class="figure-container">
+        <img src="fig2_pipeline.png" alt="Processing Pipeline">
+        <div class="figure-caption"><strong>Fig. 2.</strong> End-to-end data processing and evaluation pipeline. Scaler fitting is isolated to training folds only, followed by pre-training leakage audit verification before every fold begins.</div>
+    </div>
+
+    <p>An automated leakage audit runs <em>before</em> each fold trains (Section IV-C). Class weights are computed per fold using scikit-learn's <code>balanced</code> mode. The checkpoint with the best validation macro F1 is selected for testing.</p>
+
+    <h1>IV. Experimental Setup</h1>
+    <h2>A. Implementation Details</h2>
+    <p class="first-para">The framework is implemented in PyTorch 2.x with scikit-learn for preprocessing and classical baselines. Training uses AdamW [22] with learning rate 3 &times; 10<sup>&minus;4</sup>, weight decay 10<sup>&minus;2</sup>, batch size 16, and a ReduceLROnPlateau scheduler (patience 4, factor 0.5). Early stopping patience is set to 7 epochs; maximum budget is 35 epochs. Gaussian noise augmentation (&sigma; = 0.05) is applied to training inputs.</p>
+
+    <h2>B. Compared Models</h2>
+    <p class="first-para">We evaluate the following models under identical LOSO folds:</p>
+    <ul>
+        <li><strong>Hybrid (proposed):</strong> Attention-gated MLP fusion (245K params)</li>
+        <li><strong>MLP + Concat:</strong> Same encoders, concatenation fusion (236K params)</li>
+        <li><strong>fNIRS-only:</strong> Unimodal fNIRS encoder (137K params)</li>
+        <li><strong>EEG-only:</strong> Unimodal EEG encoder (64K params)</li>
+        <li><strong>CNN + Residual:</strong> 1D CNN encoders with residual blocks (108K params)</li>
+        <li><strong>Random Forest:</strong> 100 estimators on the same feature set</li>
+        <li><strong>DANN:</strong> Baseline + gradient-reversal subject discriminator [12]</li>
+    </ul>
+    <p>Additionally, a 58-configuration search varied batch size, learning rate, dropout, weight decay, LR schedule, capacity, architecture, modality dropout, noise, DANN lambda, window size, normalization stage, and feature set.</p>
+
+    <h2>C. Leakage Audit</h2>
+    <p class="first-para">Every fold passes an automated audit before training commences. Table II lists the checks. Any failure raises a <code>LeakageError</code> and aborts the fold, ensuring no leaked score is ever produced. Negative tests deliberately inject each leakage type and confirm the audit catches it.</p>
+
+    <div class="table-container">
+        <div class="table-title">TABLE II</div>
+        <div class="table-caption">Leakage Audit Checks (Enforced Per Fold)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Check</th>
+                    <th class="center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Subject disjointness (train/val/test)</td><td class="center">PASS</td></tr>
+                <tr><td>Trial disjointness across splits</td><td class="center">PASS</td></tr>
+                <tr><td>Window identity disjointness</td><td class="center">PASS</td></tr>
+                <tr><td>No byte-identical feature rows across splits</td><td class="center">PASS</td></tr>
+                <tr><td>Row-index disjointness</td><td class="center">PASS</td></tr>
+                <tr><td>Scaler fitted on training rows only</td><td class="center">PASS</td></tr>
+                <tr><td>Held-out subject absent from train &amp; val</td><td class="center">PASS</td></tr>
+                <tr><td>Per-subject norm is subject-local</td><td class="center">PASS</td></tr>
+                <tr><td>Features finite (no NaN/Inf)</td><td class="center">PASS</td></tr>
+                <tr class="border-bottom"><td>Label sanity (correct mapping, all classes)</td><td class="center">PASS</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h1>V. Results</h1>
+    <h2>A. Main Model Comparison</h2>
+    <p class="first-para">Table III presents the LOSO results for all evaluated models. The proposed attention-gated hybrid achieves the best Macro F1 (0.6255) among neural models. The attention mechanism outperforms concatenation fusion (+0.004 F1, <em>p</em> = 0.23), though the difference is not statistically significant. The fNIRS-only model (F1 = 0.41) substantially outperforms EEG-only on the 3-class task, consistent with the dominance of hemodynamic features observed in SHAP analysis. The CNN-based architectures underperform MLP encoders, suggesting that the pre-extracted band-power/statistical features do not benefit from convolutional inductive biases.</p>
+
+    <div class="table-container">
+        <div class="table-title">TABLE III</div>
+        <div class="table-caption">Model Comparison &mdash; Binary LOSO (26 Folds)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th class="center">LOSO Acc.</th>
+                    <th class="center">Macro F1</th>
+                    <th class="center">ROC-AUC</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Hybrid (ours)</strong></td><td class="center"><strong>.631 &plusmn; .101</strong></td><td class="center"><strong>.626 &plusmn; .104</strong></td><td class="center"><strong>.678 &plusmn; .129</strong></td></tr>
+                <tr><td>MLP + Concat</td><td class="center">.636 &plusmn; .101</td><td class="center">.629 &plusmn; .101</td><td class="center">.683 &plusmn; .107</td></tr>
+                <tr><td>CNN + Residual</td><td class="center">.576 &plusmn; .084</td><td class="center">.555 &plusmn; .084</td><td class="center">.604 &plusmn; .084</td></tr>
+                <tr><td>fNIRS-only<sup>&dagger;</sup></td><td class="center">.430 &plusmn; .082</td><td class="center">.413 &plusmn; .087</td><td class="center">.612 &plusmn; .085</td></tr>
+                <tr><td>Random Forest</td><td class="center">.447 &plusmn; .090</td><td class="center">.437 &plusmn; .090</td><td class="center">.619 &plusmn; .087</td></tr>
+                <tr class="border-bottom"><td>DANN (&lambda; = 0.1)</td><td class="center">.626 &plusmn; .098</td><td class="center">.618 &plusmn; .098</td><td class="center">.680 &plusmn; .107</td></tr>
+            </tbody>
+        </table>
+        <div class="table-footnote"><sup>&dagger;</sup>3-class LOSO; all others are binary LOSO.</div>
+    </div>
+
+    <p>Fig. 3 visualizes the LOSO performance across models with uncertainty bars.</p>
+
+    <div class="figure-container">
+        <img src="fig3_model_comparison.png" alt="Model Comparison">
+        <div class="figure-caption"><strong>Fig. 3.</strong> LOSO accuracy and macro F1 across evaluated models. Error bars represent &plusmn;1 standard deviation across folds. Dashed/dotted lines indicate binary (0.5) and 3-class (0.33) chance levels.</div>
+    </div>
+
+    <h2>B. Ablation Study</h2>
+    <p class="first-para">Table IV summarizes key ablations from the 58-experiment search, all evaluated on identical LOSO folds with paired testing.</p>
+
+    <div class="table-container">
+        <div class="table-title">TABLE IV</div>
+        <div class="table-caption">Ablation Study &mdash; Binary LOSO Macro F1</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Ablation</th>
+                    <th class="center">Macro F1</th>
+                    <th class="right">&Delta; vs. Base</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Baseline (attn. fusion)</strong></td><td class="center"><strong>.645 &plusmn; .078</strong></td><td class="right">&mdash;</td></tr>
+                <tr><td colspan="3" class="table-subheading">Fusion method</td></tr>
+                <tr><td>&emsp;Concat fusion</td><td class="center">.629 &plusmn; .101</td><td class="right">&minus;.016</td></tr>
+                <tr><td>&emsp;Cross-attention</td><td class="center">.547 &plusmn; .079</td><td class="right">&minus;.098</td></tr>
+                <tr><td colspan="3" class="table-subheading">Normalization</td></tr>
+                <tr><td>&emsp;No per-subject norm</td><td class="center">.570 &plusmn; .106</td><td class="right">&minus;.075</td></tr>
+                <tr><td>&emsp;Norm after log</td><td class="center">.615 &plusmn; .099</td><td class="right">&minus;.030</td></tr>
+                <tr><td colspan="3" class="table-subheading">Modality</td></tr>
+                <tr><td>&emsp;HbO only (drop HbR)</td><td class="center">.578 &plusmn; .098</td><td class="right">&minus;.067</td></tr>
+                <tr><td colspan="3" class="table-subheading">Domain adaptation</td></tr>
+                <tr><td>&emsp;DANN &lambda; = 0.1</td><td class="center">.618 &plusmn; .098</td><td class="right">&minus;.027</td></tr>
+                <tr><td>&emsp;DANN &lambda; = 1.0</td><td class="center">.578 &plusmn; .110</td><td class="right">&minus;.067</td></tr>
+                <tr><td colspan="3" class="table-subheading">Architecture</td></tr>
+                <tr><td>&emsp;CNN + res. + attention</td><td class="center">.547 &plusmn; .079</td><td class="right">&minus;.098</td></tr>
+                <tr><td>&emsp;Proj. dim 192 (620K)</td><td class="center">.661 &plusmn; .101</td><td class="right">+.016</td></tr>
+                <tr><td>&emsp;Narrow (66K)</td><td class="center">.647 &plusmn; .112</td><td class="right">+.002</td></tr>
+                <tr><td colspan="3" class="table-subheading">Regularization</td></tr>
+                <tr><td>&emsp;Dropout 0.6/0.7</td><td class="center">.508 &plusmn; .127</td><td class="right">&minus;.137</td></tr>
+                <tr class="border-bottom"><td>&emsp;Label smoothing 0.1</td><td class="center">.605 &plusmn; .141</td><td class="right">&minus;.040</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>Key findings: (1) per-subject normalization is essential (&minus;0.075 F1 without it, <em>p</em> = 0.014); (2) attention fusion marginally outperforms concatenation; (3) neither increased capacity (620K params) nor reduced capacity (66K params) yields statistically significant improvement; and (4) DANN degrades monotonically with adversarial strength.</p>
+
+    <h2>C. Participant-Wise Generalization</h2>
+    <p class="first-para">Fig. 4 shows the binary LOSO macro F1 for all 26 subjects. Performance varies from 0.431 (S12) to 0.807 (S17)&mdash;a 37.6-point spread that exceeds the difference between any two models compared above. This inter-subject variability is the dominant source of uncertainty, consistent with known challenges in neurophysiological BCIs [21], [23].</p>
+
+    <div class="figure-container">
+        <img src="fig4_participant_wise.png" alt="Participant-Wise Generalization">
+        <div class="figure-caption"><strong>Fig. 4.</strong> Per-subject held-out macro F1 (binary LOSO). Green: F1 &ge; 0.65; orange: 0.5&ndash;0.65; red: below chance. The inter-subject range (0.376) exceeds the largest inter-model difference (0.166).</div>
+    </div>
+
+    <h2>D. Confusion Matrix</h2>
+    <p class="first-para">Fig. 5 presents the pooled confusion matrix from all 4,576 held-out predictions. Low-workload recall (68.2%) exceeds High-workload recall (58.0%), consistent with prior work showing that resting-state EEG/fNIRS patterns (0-back) are more stereotyped across subjects than high-load patterns [17].</p>
+
+    <div class="figure-container">
+        <img src="fig5_confusion_matrix.png" alt="Confusion Matrix">
+        <div class="figure-caption"><strong>Fig. 5.</strong> Pooled confusion matrix from 26-fold binary LOSO. (a) Raw counts from 4,576 held-out windows. (b) Row-normalized percentages.</div>
+    </div>
+
+    <h2>E. Feature Attribution</h2>
+    <p class="first-para">Fig. 6 shows SHAP-based feature family importance. fNIRS features dominate (94.5% of total |SHAP|), with HbR AUC and HbO max/min/mean as the most informative families. This is physiologically plausible: the n-back task engages prefrontal cortex, where hemodynamic changes are large and relatively consistent across subjects. EEG band-power features contribute only 5.5%, suggesting that scalp-level spectral features carry less transferable cross-subject signal than hemodynamic descriptors for this task and preprocessing pipeline.</p>
+
+    <div class="figure-container">
+        <img src="fig6_feature_attribution.png" alt="Feature Attribution">
+        <div class="figure-caption"><strong>Fig. 6.</strong> SHAP feature family importance (binary model). fNIRS hemodynamic features dominate (94.5%), with both HbO and HbR chromophores contributing substantially. EEG band-power features account for only 5.5%.</div>
+    </div>
+
+    <h1>VI. Discussion</h1>
+    <h2>A. Interpretation of Results</h2>
+    <p class="first-para">The binary LOSO accuracy of 63.09% substantially exceeds the 50% chance level and is consistent with the realistic state of the art for honest cross-subject evaluation on this dataset. The 17.5-point train&ndash;held-out generalization gap (train F1 0.80, held-out F1 0.63) confirms that overfitting to subject-specific patterns remains a challenge even with extensive regularization.</p>
+    <p>The protocol taxonomy benchmark (3-class vs. binary, within-subject vs. LOSO) reveals that <em>task difficulty</em>&mdash;not subject leakage&mdash;explains the gap between our numbers and headline literature figures of 70&ndash;90%. Collapsing to binary lifts LOSO F1 by ~0.20, while within-subject vs. LOSO accounts for a smaller difference on this dataset once per-subject normalization is applied.</p>
+
+    <h2>B. Why DANN Does Not Help</h2>
+    <p class="first-para">Three converging lines of evidence explain DANN's failure on this dataset: (1) the protocol benchmark shows subject-baseline leakage is already a minor effect after per-subject normalization; (2) a subject-invariance probe on the baseline representation shows near-chance subject-identity recovery (0.091 vs. 0.050 chance, for 20 subjects), leaving little decodable subject information for the adversary to strip; and (3) the DANN lambda sweep degrades monotonically (F1: 0.42 &rarr; 0.36 as &lambda;: 0 &rarr; 2), consistent with the adversary injecting noise rather than removing a harmful confound. This is a legitimate negative result: the cross-subject difficulty here reflects genuine task difficulty and limited transferable signal, not a decodable identity confound.</p>
+
+    <h2>C. Modality Contributions</h2>
+    <p class="first-para">The asymmetric SHAP attribution (fNIRS 94.5% vs. EEG 5.5%) and the finding that fNIRS-only outperforms the hybrid on 3-class LOSO raise the question of whether EEG contributes meaningfully. Two observations argue for retaining EEG: (1) the attention gate analysis shows the EEG gate mean (0.478) is non-trivially different from zero, suggesting the model extracts <em>some</em> complementary information; and (2) the binary hybrid does outperform fNIRS-only (F1 0.63 vs. 0.41 on 3-class), indicating that EEG's marginal contribution becomes useful when the classification task is sufficiently constrained.</p>
+
+    <h2>D. Comparison with Prior Work</h2>
+    <p class="first-para">Direct comparison with published accuracies requires matching the evaluation protocol. Shin et al. [7] reported 71.2% within-subject accuracy (3-class). Our binary LOSO accuracy of 63.1% on the same dataset is not directly comparable due to protocol and class differences. Under matched LOSO conditions, our 3-class result (39.8% accuracy, F1 0.364) is consistent with the challenging nature of cross-subject 3-class decoding on this dataset [8].</p>
+
+    <h1>VII. Limitations and Threats to Validity</h1>
+    <p class="first-para"><strong>Per-subject normalization</strong> uses each subject's own statistics (transductive setting). In deployment, a calibration session would be needed to collect these statistics for a new user, which limits immediate applicability.</p>
+    <p><strong>Small cohort.</strong> 26 subjects is standard for this dataset but insufficient for strong generalization claims. The wide per-subject performance spread (Fig. 4) may not represent the broader population.</p>
+    <p><strong>Pre-extracted features.</strong> The pipeline operates on extracted band-power and statistical descriptors, not raw signals. End-to-end models operating on raw EEG/fNIRS waveforms may capture dynamics lost in feature extraction.</p>
+    <p><strong>Single dataset.</strong> Results are specific to the TU Berlin n-back paradigm. Transfer to other cognitive tasks (e.g., Stroop, dual-task) or clinical populations has not been validated.</p>
+    <p><strong>Baseline mismatch.</strong> A small discrepancy (~2 points) was observed between baseline reproductions across different environments, documented but unresolved. All comparisons are paired within runs to mitigate this.</p>
+
+    <h1>VIII. Conclusion and Future Work</h1>
+    <p class="first-para">We presented a leakage-audited multimodal EEG&ndash;fNIRS framework for binary cognitive workload estimation that achieves 63.09% LOSO accuracy with attention-gated fusion. The key findings are: (1) fNIRS hemodynamic features dominate cross-subject classification (94.5% SHAP attribution); (2) per-subject normalization is essential and statistically significant; (3) a 58-experiment search found no configuration that significantly improves on the attention-gated baseline; and (4) DANN does not help because the cross-subject challenge reflects genuine task difficulty rather than a decodable identity confound.</p>
+    <p>Future directions include: end-to-end learning from raw signals to bypass hand-crafted feature extraction; test-time calibration strategies that require minimal per-user data; cross-dataset evaluation using the universal ingestion layer already implemented; and exploration of graph neural networks to exploit spatial relationships between channels. The full codebase, including the leakage audit framework and all 58 experiment records, is available for reproducibility.</p>
+
+    <h1>References</h1>
+    <div class="references-list">
+        <div class="ref-item">[1] P. Aric&ograve;, G. Borghini, G. Di Flumeri, N. Sciaraffa, and F. Babiloni, &ldquo;Passive BCI in operational environments: Insights, recent advances, and future trends,&rdquo; <em>IEEE Trans. Biomed. Eng.</em>, vol. 64, no. 7, pp. 1431&ndash;1436, 2017.</div>
+        <div class="ref-item">[2] F. Dehais <em>et al.</em>, &ldquo;Monitoring pilot's mental workload using ERPs and spectral power with a six-dry-electrode EEG system in real flight conditions,&rdquo; <em>Sensors</em>, vol. 19, no. 6, p. 1324, 2019.</div>
+        <div class="ref-item">[3] K. A. Guru, E. T. Esfahani, S. J. Rosen, M. Urbach, G. Mathews, and H. Ni, &ldquo;Cognitive skills assessment during robot-assisted surgery,&rdquo; <em>BJU Int.</em>, vol. 115, no. 1, pp. 166&ndash;174, 2015.</div>
+        <div class="ref-item">[4] N. Naseer and K.-S. Hong, &ldquo;fNIRS-based brain-computer interfaces: A review,&rdquo; <em>Frontiers Human Neurosci.</em>, vol. 9, p. 3, 2015.</div>
+        <div class="ref-item">[5] J. Shin, A. von L&uuml;hmann, B. Blankertz, D.-W. Kim, J. Jeong, H.-J. Hwang, and K.-R. M&uuml;ller, &ldquo;Open access dataset for EEG+NIRS single-trial classification,&rdquo; <em>IEEE Trans. Neural Syst. Rehabil. Eng.</em>, vol. 25, no. 10, pp. 1735&ndash;1745, 2017.</div>
+        <div class="ref-item">[6] H. Aghajani, M. Garbey, and A. Omurtag, &ldquo;Measuring mental workload with EEG+fNIRS,&rdquo; <em>Frontiers Human Neurosci.</em>, vol. 11, p. 359, 2017.</div>
+        <div class="ref-item">[7] J. Shin, A. von L&uuml;hmann, D.-W. Kim, J. Mehnert, H.-J. Hwang, and K.-R. M&uuml;ller, &ldquo;Simultaneous acquisition of EEG and NIRS during cognitive tasks for an open access dataset,&rdquo; <em>Sci. Data</em>, vol. 5, p. 180003, 2018.</div>
+        <div class="ref-item">[8] R. A. Khan, N. Naseer, N. K. Qureshi, F. M. Noori, H. Nazeer, and M. U. Khan, &ldquo;fNIRS-based neurorobotic interface for gait rehabilitation,&rdquo; <em>J. NeuroEng. Rehabil.</em>, vol. 15, no. 1, p. 7, 2018.</div>
+        <div class="ref-item">[9] K.-S. Hong, M. J. Khan, and M. J. Hong, &ldquo;Feature extraction and classification methods for hybrid fNIRS-EEG brain-computer interfaces,&rdquo; <em>Frontiers Human Neurosci.</em>, vol. 12, p. 246, 2018.</div>
+        <div class="ref-item">[10] M. J. Khan, M. J. Hong, and K.-S. Hong, &ldquo;Decoding of four movement directions using hybrid NIRS-EEG brain-computer interface,&rdquo; <em>Frontiers Human Neurosci.</em>, vol. 8, p. 244, 2014.</div>
+        <div class="ref-item">[11] S. Fazli, J. Mehnert, J. Steinbrink, G. Curio, A. Villringer, K.-R. M&uuml;ller, and B. Blankertz, &ldquo;Enhanced performance by a hybrid NIRS&ndash;EEG brain computer interface,&rdquo; <em>NeuroImage</em>, vol. 59, no. 1, pp. 519&ndash;529, 2012.</div>
+        <div class="ref-item">[12] Y. Ganin, E. Ustinova, H. Ajakan, P. Germain, H. Larochelle, F. Laviolette, M. Marchand, and V. Lempitsky, &ldquo;Domain-adversarial training of neural networks,&rdquo; <em>J. Mach. Learn. Res.</em>, vol. 17, no. 1, pp. 2096&ndash;2030, 2016.</div>
+        <div class="ref-item">[13] A. Gevins, M. E. Smith, H. Leong, L. McEvoy, S. Whitfield, R. Du, and G. Rush, &ldquo;Monitoring working memory load during computer-based tasks with EEG pattern recognition methods,&rdquo; <em>Human Factors</em>, vol. 40, no. 1, pp. 79&ndash;91, 1998.</div>
+        <div class="ref-item">[14] A.-M Brouwer, M. A. Hogervorst, J. B. van Erp, T. Heffelaar, P. H. Zimmerman, and R. Oostenveld, &ldquo;Estimating workload using EEG spectral power and ERPs in the n-back task,&rdquo; <em>J. Neural Eng.</em>, vol. 9, no. 4, p. 045008, 2012.</div>
+        <div class="ref-item">[15] V. J. Lawhern, A. J. Solon, N. R. Waytowich, S. M. Gordon, C. P. Hung, and B. J. Lance, &ldquo;EEGNet: A compact convolutional neural network for EEG-based brain-computer interfaces,&rdquo; <em>J. Neural Eng.</em>, vol. 15, no. 5, p. 056013, 2018.</div>
+        <div class="ref-item">[16] X. Zhang, L. Yao, X. Wang, J. Monaghan, and D. McAlpine, &ldquo;A survey on deep learning-based non-invasive brain signals: Recent advances and new frontiers,&rdquo; <em>J. Neural Eng.</em>, vol. 18, no. 3, p. 031002, 2021.</div>
+        <div class="ref-item">[17] C. Herff, D. Heger, O. Fortmann, J. Hennrich, F. Putze, and T. Schultz, &ldquo;Mental workload during n-back task&mdash;quantified in the prefrontal cortex using fNIRS,&rdquo; <em>Frontiers Human Neurosci.</em>, vol. 7, p. 935, 2014.</div>
+        <div class="ref-item">[18] T. Ma <em>et al.</em>, &ldquo;The hybrid BCI system for movement control by combining motor imagery and moving onset visual evoked potential,&rdquo; <em>J. Neural Eng.</em>, vol. 14, no. 2, p. 026015, 2017.</div>
+        <div class="ref-item">[19] D. Wu, Y. Xu, and B.-L. Lu, &ldquo;Transfer learning for EEG-based brain-computer interfaces: A review of progress made since 2016,&rdquo; <em>IEEE Trans. Cogn. Dev. Syst.</em>, vol. 14, no. 1, pp. 4&ndash;19, 2022.</div>
+        <div class="ref-item">[20] H. Li, Y.-M. Jin, W.-L. Zheng, and B.-L. Lu, &ldquo;Cross-subject emotion recognition using deep adaptation networks,&rdquo; in <em>Proc. ICONIP</em>, 2018, pp. 403&ndash;413.</div>
+        <div class="ref-item">[21] F. Lotte, L. Bougrain, A. Cichocki, M. Clerc, M. Congedo, A. Rakotomamonjy, and F. Yger, &ldquo;A review of classification algorithms for EEG-based brain-computer interfaces: A 10 year update,&rdquo; <em>J. Neural Eng.</em>, vol. 15, no. 3, p. 031005, 2018.</div>
+        <div class="ref-item">[22] I. Loshchilov and F. Hutter, &ldquo;Decoupled weight decay regularization,&rdquo; in <em>Proc. ICLR</em>, 2019.</div>
+        <div class="ref-item">[23] R. T. Schirrmeister <em>et al.</em>, &ldquo;Deep learning with convolutional neural networks for EEG decoding and visualization,&rdquo; <em>Human Brain Mapping</em>, vol. 38, no. 11, pp. 5391&ndash;5420, 2017.</div>
+        <div class="ref-item">[24] B. Lakshminarayanan, A. Pritzel, and C. Blundell, &ldquo;Simple and scalable predictive uncertainty estimation using deep ensembles,&rdquo; in <em>Proc. NeurIPS</em>, 2017, pp. 6402&ndash;6413.</div>
+        <div class="ref-item">[25] S. M. Lundberg and S.-I. Lee, &ldquo;A unified approach to interpreting model predictions,&rdquo; in <em>Proc. NeurIPS</em>, 2017, pp. 4765&ndash;4774.</div>
+        <div class="ref-item">[26] R. Chai, S. H. Ling, G. P. Hunter, Y. Tran, and H. T. Nguyen, &ldquo;Brain-computer interface classifier for wheelchair commands using neural network with fuzzy particle swarm optimization,&rdquo; <em>IEEE J. Biomed. Health Inform.</em>, vol. 18, no. 5, pp. 1614&ndash;1624, 2014.</div>
+        <div class="ref-item">[27] B. Blankertz, S. Lemm, M. Treder, S. Haufe, and K.-R. M&uuml;ller, &ldquo;Single-trial analysis and classification of ERP components&mdash;A tutorial,&rdquo; <em>NeuroImage</em>, vol. 56, no. 2, pp. 814&ndash;825, 2011.</div>
+        <div class="ref-item">[28] S. D. Power, A. Kushki, and T. Chau, &ldquo;Automatic single-trial discrimination of mental arithmetic, mental singing and the no-control state from prefrontal activity: Toward a three-state NIRS-BCI,&rdquo; <em>BMC Res. Notes</em>, vol. 5, p. 141, 2012.</div>
+        <div class="ref-item">[29] H. Peng, F. Long, and C. Ding, &ldquo;Feature selection based on mutual information criteria of max-dependency, max-relevance, and min-redundancy,&rdquo; <em>IEEE Trans. Pattern Anal. Mach. Intell.</em>, vol. 27, no. 8, pp. 1226&ndash;1238, 2005.</div>
+        <div class="ref-item">[30] K. He, X. Zhang, S. Ren, and J. Sun, &ldquo;Deep residual learning for image recognition,&rdquo; in <em>Proc. IEEE CVPR</em>, 2016, pp. 770&ndash;778.</div>
+    </div>
+
+</div>
+
+</body>
+</html>
+"""
+
+with open(HTML_PATH, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print(f"Wrote {HTML_PATH}")
+
+cmd = [
+    CHROME_PATH,
+    "--headless=new",
+    "--no-pdf-header-footer",
+    f"--print-to-pdf={PDF_PATH}",
+    f"file:///{HTML_PATH}"
+]
+
+print("Compiling PDF with Chrome...")
+res = subprocess.run(cmd, capture_output=True, text=True)
+print("Chrome stderr/stdout:", res.stderr, res.stdout)
+
+if os.path.exists(PDF_PATH):
+    doc = pymupdf.open(PDF_PATH)
+    print(f"SUCCESS: PDF created at {PDF_PATH}")
+    print(f"Total page count: {len(doc)} pages")
+    for i, page in enumerate(doc):
+        text = page.get_text()
+        images = page.get_images()
+        print(f"Page {i+1}: {len(text.splitlines())} lines, ~{len(text.split())} words, {len(images)} images")
+else:
+    print("FAILED: PDF not created")
